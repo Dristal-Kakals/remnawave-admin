@@ -42,29 +42,31 @@ export default defineConfig({
           // forcing CSS into a manualChunk breaks lazy-load CSS code-splitting.
           if (id.endsWith('.css')) return
 
-          // Core React runtime — cached long-term.
-          // react-is is included because recharts (3.x) hard-imports it
-          // synchronously: if it lands in a separate auto-chunk that
-          // resolves *after* the recharts chunk has started executing,
-          // recharts crashes in Surface.js with
-          // `Cannot read properties of undefined (reading 'forwardRef')`.
+          // Core React runtime + all React-dependent libs that touch
+          // React at module-init. Anything that calls React.createContext,
+          // React.forwardRef, etc. synchronously in its module body MUST
+          // ride in the same chunk as React itself; otherwise it can
+          // race ahead of vendor-react and crash with
+          // `Cannot read properties of undefined (reading 'forwardRef'/'createContext')`.
+          //
+          // react-is, recharts (Surface.js), @tanstack/react-query
+          // (QueryClientProvider.js) and zustand (use-sync-external-store)
+          // all bit us in production — keep them together.
           if (
             id.includes('/react/') ||
             id.includes('/react-dom/') ||
             id.includes('/react-router') ||
             id.includes('/react-is/') ||
             id.includes('/use-sync-external-store/') ||
-            id.includes('/scheduler/')
+            id.includes('/scheduler/') ||
+            id.includes('/@tanstack/react-query/') ||
+            id.includes('/zustand/')
           ) {
             return 'vendor-react'
           }
 
-          // Data layer (state, HTTP, queries)
-          if (
-            id.includes('/zustand/') ||
-            id.includes('/axios/') ||
-            id.includes('/@tanstack/react-query/')
-          ) {
+          // HTTP client — pure JS, no React touch at init, can ship separately
+          if (id.includes('/axios/')) {
             return 'vendor-data'
           }
 
