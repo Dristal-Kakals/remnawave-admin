@@ -1715,6 +1715,8 @@ class HwidCrossAccountAnalyzer:
         if not shared:
             return HwidScore(score=0.0, reasons=[])
 
+        from shared.config_service import config_service
+
         max_accounts = config_service.get("violations_hwid_max_accounts", 2)
         max_per_account = config_service.get("violations_hwid_max_per_account", 10)
         try:
