@@ -42,11 +42,17 @@ export default defineConfig({
           // forcing CSS into a manualChunk breaks lazy-load CSS code-splitting.
           if (id.endsWith('.css')) return
 
-          // Core React runtime — cached long-term
+          // Core React runtime — cached long-term.
+          // react-is is included because recharts (3.x) hard-imports it
+          // synchronously: if it lands in a separate auto-chunk that
+          // resolves *after* the recharts chunk has started executing,
+          // recharts crashes in Surface.js with
+          // `Cannot read properties of undefined (reading 'forwardRef')`.
           if (
             id.includes('/react/') ||
             id.includes('/react-dom/') ||
             id.includes('/react-router') ||
+            id.includes('/react-is/') ||
             id.includes('/use-sync-external-store/') ||
             id.includes('/scheduler/')
           ) {
@@ -76,9 +82,12 @@ export default defineConfig({
             return 'vendor-radix'
           }
 
-          // Charts
+          // Charts — recharts must share the React chunk so its synchronous
+          // `forwardRef` access never races a separate vendor file. d3-*
+          // is recharts' transitive dep, keep it together to avoid
+          // splitting recharts' internals across multiple chunks.
           if (id.includes('/recharts/') || id.includes('/d3-')) {
-            return 'vendor-charts'
+            return 'vendor-react'
           }
 
           // Maps (heavy — loaded only with Analytics page)
