@@ -86,7 +86,7 @@ export const Modal = ({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="text-slate-400 hover:text-white p-2 hover:bg-slate-800 rounded-lg transition-colors shrink-0 relative z-10"
+                                className="text-slate-400 hover:text-white p-2 hover:bg-slate-800 rounded-lg transition-colors shrink-0 relative z-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
                                 aria-label="Закрыть"
                             >
                                 <Icon name="X" className="text-xl" />
