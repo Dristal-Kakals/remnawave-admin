@@ -1,7 +1,4 @@
-// @ts-nocheck
-import React from 'react';
 import { Icon } from '../ui';
-import { Button } from '../ui';
 
 interface DragDropOverlayProps {
     visible: boolean;

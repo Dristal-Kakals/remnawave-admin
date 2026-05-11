@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { Icon } from '../ui';
 import type { Preset } from '../../core/presets';

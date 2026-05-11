@@ -1,6 +1,3 @@
-// @ts-nocheck
-import React from 'react';
-
 export interface DividerProps {
     label?: string;
     className?: string;

@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React from 'react';
-import { Icon } from './Icon';
+import { Checkbox as ShadCheckbox } from '@/components/ui/checkbox';
 
 export interface CheckboxProps {
     checked: boolean;
@@ -14,8 +13,9 @@ export interface CheckboxProps {
 }
 
 /**
- * Checkbox — renders as a styled square with checkmark.
- * For toggle/switch style, use the Switch component instead.
+ * Adapter: preserves upstream xray-editor Checkbox API but renders through the
+ * admin panel's shadcn Checkbox (Radix). Indeterminate state goes through
+ * Radix's `checked="indeterminate"` value.
  */
 export const Checkbox = ({
     checked,
@@ -27,43 +27,29 @@ export const Checkbox = ({
     id,
     className = '',
 }: CheckboxProps) => {
-    const checkboxId = id ?? (typeof label === 'string' ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const checkboxId =
+        id ??
+        (typeof label === 'string' ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
         <label
             htmlFor={checkboxId}
-            className={`flex items-start gap-3 cursor-pointer group select-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+            className={`flex items-start gap-3 cursor-pointer group select-none ${
+                disabled ? 'opacity-50 cursor-not-allowed' : ''
+            } ${className}`}
         >
-            {/* Custom checkbox box */}
-            <div className="relative mt-0.5 shrink-0">
-                <input
-                    type="checkbox"
-                    id={checkboxId}
-                    checked={checked}
-                    ref={(el) => {
-                        if (el) el.indeterminate = indeterminate;
-                    }}
-                    onChange={(e) => !disabled && onChange(e.target.checked)}
-                    disabled={disabled}
-                    className="sr-only"
-                />
-                <div
-                    className={`
-                        w-4.5 h-4.5 w-[18px] h-[18px] rounded border-2 flex items-center justify-center transition-all duration-150
-                        ${checked || indeterminate
-                            ? 'bg-indigo-600 border-indigo-600'
-                            : 'bg-slate-900 border-slate-600 group-hover:border-indigo-500'}
-                    `}
-                >
-                    {indeterminate ? (
-                        <span className="w-2.5 h-0.5 bg-white rounded-full" />
-                    ) : checked ? (
-                        <Icon name="Check" weight="bold" className="text-white text-[11px]" />
-                    ) : null}
-                </div>
-            </div>
+            <ShadCheckbox
+                id={checkboxId}
+                checked={indeterminate ? 'indeterminate' : checked}
+                onCheckedChange={(v) => {
+                    if (disabled) return;
+                    // Radix passes boolean | "indeterminate" — collapse to bool
+                    onChange(v === true);
+                }}
+                disabled={disabled}
+                className="mt-0.5 h-[18px] w-[18px] data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 border-slate-600 group-hover:border-indigo-500 transition-colors"
+            />
 
-            {/* Labels */}
             {(label || description) && (
                 <div className="flex flex-col gap-0.5">
                     {label && (

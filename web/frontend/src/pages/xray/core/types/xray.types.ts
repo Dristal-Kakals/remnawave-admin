@@ -1,4 +1,3 @@
-// @ts-nocheck
 // ============================================================
 // Xray-core TypeScript types
 // Fully decoupled from React / Zustand — pure domain types

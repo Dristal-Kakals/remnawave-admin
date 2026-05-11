@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ─── Xray GUI UI Component Library ───────────────────────────────────────────
  *

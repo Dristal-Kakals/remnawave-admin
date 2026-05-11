@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import {
     Dialog,
@@ -21,6 +20,16 @@ import { Icon } from './Icon';
  * fullscreen toggle stays on the title bar — Radix doesn't ship one out of
  * the box and the editor relies on going full-window for the JSON view.
  */
+interface ModalProps {
+    title: React.ReactNode;
+    onClose: () => void;
+    onSave?: () => void;
+    children: React.ReactNode;
+    extraButtons?: React.ReactNode;
+    className?: string;
+    isSecondary?: boolean;
+}
+
 export const Modal = ({
     title,
     onClose,
@@ -29,7 +38,7 @@ export const Modal = ({
     extraButtons = null,
     className = '',
     isSecondary = false,
-}) => {
+}: ModalProps) => {
     const [isFullScreen, setIsFullScreen] = React.useState(false);
 
     return (
