@@ -27,5 +27,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/pages/xray/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
