@@ -4,9 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Terminal,
   CalendarClock,
-  ShieldAlert,
   Activity,
-  Gauge,
   Bot,
   ArrowRight,
 } from 'lucide-react'
@@ -135,71 +133,3 @@ export function SchedulesPanel() {
   )
 }
 
-export function DetectorsPanel() {
-  const { t } = useTranslation()
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-dark-200">
-        {t('automations.hub.detectorsHint', {
-          defaultValue: 'Автоматические детекторы аномалий и блокировки. Пороги настраиваются в Настройках, нарушения видны в разделе «Нарушения».',
-        })}
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <HubLinkCard
-          accent="red"
-          icon={<Gauge className="w-5 h-5" />}
-          title={t('automations.hub.detectors.trafficRate', { defaultValue: 'Скорость потребления трафика' })}
-          description={t('automations.hub.detectors.trafficRateDesc', {
-            defaultValue: 'Порог GB/мин, авто-блокировка при превышении, ноды-исключения.',
-          })}
-          to="/settings?category=violations&subcategory=traffic_rate"
-        />
-        <HubLinkCard
-          accent="violet"
-          icon={<ShieldAlert className="w-5 h-5" />}
-          title={t('automations.hub.detectors.torrent', { defaultValue: 'Детектор торрентов' })}
-          description={t('automations.hub.detectors.torrentDesc', {
-            defaultValue: 'Распознавание P2P/торрент-трафика на нодах, уведомления и санкции.',
-          })}
-          to="/settings?category=violations&subcategory=torrent"
-        />
-        <HubLinkCard
-          accent="amber"
-          icon={<ShieldAlert className="w-5 h-5" />}
-          title={t('automations.hub.detectors.hardBlock', { defaultValue: 'Жёсткая блокировка' })}
-          description={t('automations.hub.detectors.hardBlockDesc', {
-            defaultValue: 'Скоринг и условия применения hard_block — отключение и разрыв сессий.',
-          })}
-          to="/settings?category=violations&subcategory=hard_block"
-        />
-        <HubLinkCard
-          accent="cyan"
-          icon={<ShieldAlert className="w-5 h-5" />}
-          title={t('automations.hub.detectors.bruteForce', { defaultValue: 'Brute-force защита' })}
-          description={t('automations.hub.detectors.bruteForceDesc', {
-            defaultValue: 'Ограничение неудачных попыток входа, бан IP, временные блокировки.',
-          })}
-          to="/settings?category=security&subcategory=brute_force"
-        />
-        <HubLinkCard
-          accent="violet"
-          icon={<ShieldAlert className="w-5 h-5" />}
-          title={t('automations.hub.detectors.userBlacklist', { defaultValue: 'Чёрный список юзеров' })}
-          description={t('automations.hub.detectors.userBlacklistDesc', {
-            defaultValue: 'Внешние блэклисты + локальный, синхронизация и автоматические действия.',
-          })}
-          to="/settings?category=violations&subcategory=user_blacklist"
-        />
-        <HubLinkCard
-          accent="red"
-          icon={<ShieldAlert className="w-5 h-5" />}
-          title={t('automations.hub.detectors.violationPipeline', { defaultValue: 'Pipeline детекторов' })}
-          description={t('automations.hub.detectors.violationPipelineDesc', {
-            defaultValue: 'Multi-фактор анализ (temporal/geo/asn/profile/device), пороги и рекомендации.',
-          })}
-          to="/settings?category=violations&subcategory=violation_pipeline"
-        />
-      </div>
-    </div>
-  )
-}

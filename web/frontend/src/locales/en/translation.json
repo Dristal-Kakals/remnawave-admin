@@ -2137,19 +2137,17 @@
   },
   "automations": {
     "title": "Automations",
-    "subtitle": "All automations in one place: rules, alerts, scripts, schedules, detectors",
+    "subtitle": "All automations in one place: rules, alerts, scripts, schedules",
     "hub": {
       "open": "Open",
       "sections": {
         "rules": "Rules",
         "alerts": "Alerts",
         "scripts": "Node scripts",
-        "schedules": "Schedules",
-        "detectors": "Detectors"
+        "schedules": "Schedules"
       },
       "nodeScriptsHint": "Shell-script catalog, run history and scheduled jobs live on the Fleet page. Jump straight to the section you need.",
       "schedulesHint": "Scheduled jobs run scripts on nodes by cron expression. Create and edit them on Fleet → Scheduled.",
-      "detectorsHint": "Automated anomaly detectors and blockers. Thresholds live in Settings; violations are listed under «Violations».",
       "scripts": {
         "catalog": "Script catalog",
         "catalogDesc": "Built-in and custom shell scripts. Run manually or on a schedule.",
@@ -2163,20 +2161,6 @@
         "fleetDesc": "CRON schedule for scripts on nodes. History, enable/disable.",
         "rules": "Schedule-triggered rules",
         "rulesDesc": "Rules with schedule trigger (cron/interval) — managed under the «Rules» tab."
-      },
-      "detectors": {
-        "trafficRate": "Traffic consumption rate",
-        "trafficRateDesc": "GB/min threshold, auto-block on excess, node exceptions.",
-        "torrent": "Torrent detector",
-        "torrentDesc": "P2P/torrent traffic recognition on nodes, alerts and sanctions.",
-        "hardBlock": "Hard block",
-        "hardBlockDesc": "Scoring and conditions for hard_block — disable + kill sessions.",
-        "bruteForce": "Brute-force protection",
-        "bruteForceDesc": "Failed login throttling, IP bans, temporary blocks.",
-        "userBlacklist": "User blacklist",
-        "userBlacklistDesc": "External blacklists + local list, sync and automated actions.",
-        "violationPipeline": "Detector pipeline",
-        "violationPipelineDesc": "Multi-factor analysis (temporal/geo/asn/profile/device), thresholds and recommendations."
       }
     },
     "createRule": "Create rule",

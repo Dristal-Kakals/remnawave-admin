@@ -12,7 +12,6 @@ import {
   Bell,
   Terminal,
   CalendarClock,
-  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,9 +35,9 @@ import { CATEGORIES } from './helpers'
 import { useFormatters } from '@/lib/useFormatters'
 import { useTabParam } from '@/lib/useTabParam'
 import { AlertRulesTab } from '@/pages/Notifications'
-import { NodeScriptsPanel, SchedulesPanel, DetectorsPanel } from './HubLinkCards'
+import { NodeScriptsPanel, SchedulesPanel } from './HubLinkCards'
 
-const HUB_SECTIONS = ['rules', 'alerts', 'scripts', 'schedules', 'detectors'] as const
+const HUB_SECTIONS = ['rules', 'alerts', 'scripts', 'schedules'] as const
 
 export default function Automations() {
   const { t } = useTranslation()
@@ -180,10 +179,6 @@ export default function Automations() {
           <TabsTrigger value="schedules" className="gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" />
             {t('automations.hub.sections.schedules', { defaultValue: '\u0420\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f' })}
-          </TabsTrigger>
-          <TabsTrigger value="detectors" className="gap-1.5">
-            <ShieldAlert className="w-3.5 h-3.5" />
-            {t('automations.hub.sections.detectors', { defaultValue: '\u0414\u0435\u0442\u0435\u043a\u0442\u043e\u0440\u044b' })}
           </TabsTrigger>
         </TabsList>
 
@@ -364,11 +359,6 @@ export default function Automations() {
         {/* ── Section: Schedules ──────────────────────────────── */}
         <TabsContent value="schedules" className="space-y-4">
           <SchedulesPanel />
-        </TabsContent>
-
-        {/* ── Section: Detectors ──────────────────────────────── */}
-        <TabsContent value="detectors" className="space-y-4">
-          <DetectorsPanel />
         </TabsContent>
       </Tabs>
 
