@@ -1,0 +1,33 @@
+# Prometheus scrape config для Remnawave Admin Panel.
+#
+# Запуск:  docker compose --profile monitoring up -d
+# Доступ:  http://server:9090 (или ${PROMETHEUS_PORT})
+#
+# Если задан METRICS_AUTH_TOKEN в .env — раскомментируй блок `authorization`
+# ниже и подставь тот же токен.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    instance_name: remnawave-panel
+
+scrape_configs:
+  - job_name: remnawave-panel
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - remnawave-web-backend:8081
+        labels:
+          service: panel
+
+    # Раскомментируй и подставь свой токен, если METRICS_AUTH_TOKEN задан в .env
+    # authorization:
+    #   type: Bearer
+    #   credentials: REPLACE_WITH_METRICS_AUTH_TOKEN
+
+    # Self-scrape: метрики самого Prometheus (опционально)
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090

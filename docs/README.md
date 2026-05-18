@@ -44,6 +44,39 @@ User-facing docs for integrators and operators.
 Cardinality safe: HTTP-метрики используют шаблон роута (`/api/v2/users/{user_id}`),
 а не raw URL — иначе UUID-ы юзеров взорвали бы лейблы.
 
+## Быстрый старт (5 минут)
+
+В репозитории уже есть готовый Prometheus как опциональный docker-compose сервис.
+Поднимается одной командой:
+
+```bash
+docker compose --profile monitoring up -d
+```
+
+Это поднимет `remnawave-prometheus` на порту `9090`. Конфиг сразу настроен на
+скрейп `/metrics` панели (через docker DNS — никаких URL править не надо).
+
+Дальше подключи свою Grafana как datasource:
+
+| Поле | Значение |
+|---|---|
+| Type | Prometheus |
+| URL (Grafana в той же docker network) | `http://remnawave-prometheus:9090` |
+| URL (Grafana снаружи) | `http://server_ip:9090` |
+| Auth | без авторизации (Prometheus на внутренней сети) |
+
+После Save & Test → импорт дашборда:
+
+1. Grafana → **Dashboards → New → Import**
+2. **Upload JSON file** → выбрать [`grafana-dashboard.json`](./grafana-dashboard.json)
+3. Выбрать только что добавленный datasource → **Import**
+
+Готово. Дашборд начнёт заполняться через 15-30 секунд (первый scrape interval).
+
+Если хочется защитить `/metrics` Bearer-токеном — см. ниже «Защитить токеном».
+
+---
+
 ## 1. Включить эндпоинт
 
 Бэкенд уже отдаёт `/metrics` без авторизации сразу после деплоя — ничего включать
@@ -74,6 +107,14 @@ METRICS_AUTH_TOKEN=2c9d...e1
 
 ```bash
 curl -s -H "Authorization: Bearer 2c9d...e1" https://panel.example.com/metrics
+```
+
+Если используешь встроенный Prometheus (`--profile monitoring`) — раскомментируй
+блок `authorization:` в `monitoring/prometheus.yml` и подставь тот же токен,
+затем перезапусти Prometheus:
+
+```bash
+docker compose --profile monitoring restart prometheus
 ```
 
 ### Закрыть от внешнего мира (reverse proxy)
