@@ -36,6 +36,7 @@
     "nextPage": "Next page",
     "remove": "Remove",
     "toggleSort": "Toggle sort order",
+    "dragToReorder": "Drag to reorder",
     "loading": "Loading...",
     "error": "Error",
     "loadError": "Failed to load data. Please try again.",
@@ -282,6 +283,7 @@
     "refresh": "Refresh",
     "loadError": "Failed to load data",
     "retry": "Retry",
+    "resetLayout": "Reset widget order",
     "period24h": "24h",
     "period7d": "7d",
     "period30d": "30d",
@@ -946,6 +948,20 @@
       "found": "Found",
       "users": "users",
       "error": "Failed to start scan"
+    },
+    "sort": {
+      "label": "Sort",
+      "resetCustom": "Reset order",
+      "dragHandle": "Drag to reorder",
+      "preset": {
+        "auto": "Auto (issues first)",
+        "name": "Name (A→Z)",
+        "users": "Online users (↓)",
+        "today": "Today's traffic (↓)",
+        "lastSeen": "Last ping (↓)",
+        "created": "Created date (↓)",
+        "custom": "Custom order"
+      }
     }
   },
   "fleet": {
@@ -1024,7 +1040,9 @@
       "disk": "Disk"
     },
     "sort": {
-      "label": "Sort"
+      "label": "Sort",
+      "custom": "Custom order",
+      "resetCustom": "Reset order"
     },
     "scripts": {
       "catalog": "Script Catalog",
