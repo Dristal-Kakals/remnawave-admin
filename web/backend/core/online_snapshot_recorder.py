@@ -10,10 +10,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INTERVAL_SECONDS = 300       # 5 min
-DEFAULT_WINDOW_MINUTES = 5           # online = unique users seen in last N minutes
+DEFAULT_INTERVAL_SECONDS = 60        # 1 min — matches the 24h chart bucket
+DEFAULT_WINDOW_MINUTES = 2           # online = unique users seen in last N minutes
 DEFAULT_RETENTION_DAYS = 31
-CLEANUP_EVERY_TICKS = 12 * 24        # once a day at 5-min ticks
+CLEANUP_EVERY_TICKS = 60 * 24        # once a day at 1-min ticks
 
 
 class OnlineSnapshotRecorder:

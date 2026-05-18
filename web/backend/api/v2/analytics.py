@@ -820,7 +820,7 @@ async def get_online_trend(
         now = datetime.utcnow()
         if period == "24h":
             start_dt = now - timedelta(hours=24)
-            bucket_minutes = 15        # 96 points/day — visible granularity
+            bucket_minutes = 1         # 1440 points/day — per-minute granularity
         elif period == "7d":
             start_dt = now - timedelta(days=7)
             bucket_minutes = 60        # 168 points/week
