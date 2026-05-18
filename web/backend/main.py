@@ -612,6 +612,13 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     logger.warning("Traffic rate monitor start failed: %s", e)
 
+                # Online users snapshot recorder — feeds the Trends > Online chart
+                try:
+                    from web.backend.core.online_snapshot_recorder import online_snapshot_recorder
+                    await online_snapshot_recorder.start()
+                except Exception as e:
+                    logger.warning("Online snapshot recorder start failed: %s", e)
+
                 # User blacklist sync — periodically fetch external blacklists
                 async def _blacklist_sync_loop():
                     await asyncio.sleep(60)  # initial delay 1 min
@@ -733,6 +740,11 @@ async def lifespan(app: FastAPI):
     try:
         from web.backend.core.traffic_rate_monitor import traffic_rate_monitor
         await traffic_rate_monitor.stop()
+    except Exception:
+        pass
+    try:
+        from web.backend.core.online_snapshot_recorder import online_snapshot_recorder
+        await online_snapshot_recorder.stop()
     except Exception:
         pass
     try:

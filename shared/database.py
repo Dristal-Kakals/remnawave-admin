@@ -5916,6 +5916,62 @@ class DatabaseService:
             )
             return int(result.split()[-1]) if result else 0
 
+    # ── Online users snapshots (trend chart) ────────────────
+
+    async def insert_online_users_snapshot(self, total: int) -> None:
+        """Append a single cluster-wide users-online sample."""
+        if not self.is_connected:
+            return
+        async with self.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO online_users_snapshots (total) VALUES ($1)",
+                int(total),
+            )
+
+    async def get_online_users_trend(
+        self,
+        since: datetime,
+        until: datetime,
+        bucket_minutes: int = 60,
+        aggregation: str = "avg",
+    ) -> List[Dict[str, Any]]:
+        """Return bucketed online-users trend points.
+
+        Each row: {bucket: datetime, value: int}.
+        ``aggregation`` is 'avg' or 'max'. Buckets without samples are omitted.
+        """
+        if not self.is_connected:
+            return []
+        agg_sql = "MAX(total)" if aggregation == "max" else "ROUND(AVG(total))::int"
+        async with self.acquire() as conn:
+            rows = await conn.fetch(
+                f"""
+                SELECT
+                    date_trunc('hour', ts)
+                        + INTERVAL '1 minute' * ($3 * FLOOR(
+                            EXTRACT(MINUTE FROM ts) / $3
+                          )) AS bucket,
+                    {agg_sql} AS value
+                FROM online_users_snapshots
+                WHERE ts >= $1 AND ts < $2
+                GROUP BY bucket
+                ORDER BY bucket
+                """,
+                since, until, bucket_minutes,
+            )
+            return [{"bucket": r["bucket"], "value": int(r["value"] or 0)} for r in rows]
+
+    async def cleanup_old_online_snapshots(self, keep_days: int = 31) -> int:
+        """Delete online-users snapshots older than keep_days. Returns deleted count."""
+        if not self.is_connected:
+            return 0
+        async with self.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM online_users_snapshots WHERE ts < NOW() - INTERVAL '1 day' * $1",
+                keep_days,
+            )
+            return int(result.split()[-1]) if result else 0
+
     async def get_nodes_traffic_for_period(
         self, start: datetime, end: datetime,
     ) -> Dict[str, int]:

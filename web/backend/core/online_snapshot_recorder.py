@@ -1,0 +1,108 @@
+"""Cluster-wide online users snapshot recorder.
+
+Periodically samples the sum of users_online across active (non-disabled,
+connected) nodes and stores it in online_users_snapshots. Used by the
+Trends tab to draw the avg/max online trend chart.
+"""
+import asyncio
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_INTERVAL_SECONDS = 300       # 5 min
+DEFAULT_RETENTION_DAYS = 31
+CLEANUP_EVERY_TICKS = 12 * 24        # once a day at 5-min ticks
+
+
+class OnlineSnapshotRecorder:
+    """Background loop that writes a single online-users sample on each tick."""
+
+    def __init__(self):
+        self._task: Optional[asyncio.Task] = None
+        self._running = False
+        self._tick_counter = 0
+
+    async def start(self) -> None:
+        if self._running:
+            return
+        self._running = True
+        self._task = asyncio.create_task(self._run_loop())
+        logger.info("Online snapshot recorder started")
+
+    async def stop(self) -> None:
+        self._running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+        logger.info("Online snapshot recorder stopped")
+
+    def _interval_seconds(self) -> int:
+        try:
+            from shared.config_service import config_service
+            return int(config_service.get(
+                "online_snapshot_interval_seconds", DEFAULT_INTERVAL_SECONDS,
+            ) or DEFAULT_INTERVAL_SECONDS)
+        except Exception:
+            return DEFAULT_INTERVAL_SECONDS
+
+    def _retention_days(self) -> int:
+        try:
+            from shared.config_service import config_service
+            return int(config_service.get(
+                "online_snapshot_retention_days", DEFAULT_RETENTION_DAYS,
+            ) or DEFAULT_RETENTION_DAYS)
+        except Exception:
+            return DEFAULT_RETENTION_DAYS
+
+    async def _capture(self) -> None:
+        """Read total online users from DB and append a snapshot row."""
+        from shared.database import db_service
+        if not db_service.is_connected:
+            return
+        try:
+            async with db_service.acquire() as conn:
+                total = await conn.fetchval(
+                    """
+                    SELECT COALESCE(SUM(users_online), 0)::int
+                    FROM nodes
+                    WHERE is_connected = true AND NOT is_disabled
+                    """
+                )
+            await db_service.insert_online_users_snapshot(int(total or 0))
+        except Exception as e:
+            logger.warning("Online snapshot capture failed: %s", e)
+
+    async def _maybe_cleanup(self) -> None:
+        self._tick_counter += 1
+        if self._tick_counter < CLEANUP_EVERY_TICKS:
+            return
+        self._tick_counter = 0
+        from shared.database import db_service
+        try:
+            deleted = await db_service.cleanup_old_online_snapshots(self._retention_days())
+            if deleted:
+                logger.info("Online snapshots cleanup: removed %d old rows", deleted)
+        except Exception as e:
+            logger.warning("Online snapshots cleanup failed: %s", e)
+
+    async def _run_loop(self) -> None:
+        # Small initial delay so DB / Panel sync warms up first
+        await asyncio.sleep(30)
+        while self._running:
+            try:
+                await self._capture()
+                await self._maybe_cleanup()
+            except Exception as e:
+                logger.warning("Online snapshot loop error: %s", e)
+            try:
+                await asyncio.sleep(self._interval_seconds())
+            except asyncio.CancelledError:
+                break
+
+
+online_snapshot_recorder = OnlineSnapshotRecorder()
