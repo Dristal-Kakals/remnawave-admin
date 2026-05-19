@@ -183,14 +183,55 @@
       "targets": [{ "refId": "A", "expr": "panel_node_memory_used_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}}" }]
     },
     {
-      "id": 23, "title": "Total / Used RAM (last value)", "type": "bargauge",
+      "id": 23, "title": "RAM per node", "type": "table",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 28 },
-      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "reduceOptions": { "calcs": ["lastNotNull"] } },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "bytes" }, "overrides": [] },
+      "description": "Total / Used / Free + процент. Free = total - used (вычисляется на лету).",
+      "options": { "showHeader": true, "footer": { "show": false }, "cellHeight": "sm" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "Total" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Used" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Free" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Usage" }, "properties": [
+          { "id": "unit", "value": "percentunit" }, { "id": "min", "value": 0 }, { "id": "max", "value": 1 }, { "id": "decimals", "value": 1 },
+          { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+          { "id": "thresholds", "value": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 0.7 }, { "color": "red", "value": 0.9 }
+          ]}}
+        ]}
+      ]},
       "targets": [
-        { "refId": "A", "expr": "panel_node_memory_total_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}} total" },
-        { "refId": "B", "expr": "panel_node_memory_used_bytes{instance=~\"$instance\"}",  "legendFormat": "{{node}} used" }
+        { "refId": "A", "expr": "panel_node_memory_total_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "B", "expr": "panel_node_memory_used_bytes{instance=~\"$instance\"}",  "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "C", "expr": "panel_node_memory_total_bytes{instance=~\"$instance\"} - panel_node_memory_used_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "D", "expr": "panel_node_memory_used_bytes{instance=~\"$instance\"} / clamp_min(panel_node_memory_total_bytes{instance=~\"$instance\"}, 1)", "legendFormat": "{{node}}", "format": "table", "instant": true }
+      ],
+      "transformations": [
+        { "id": "joinByField", "options": { "byField": "node", "mode": "outer" } },
+        { "id": "organize", "options": {
+            "excludeByName": {
+              "Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true,
+              "__name__": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true,
+              "job": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true,
+              "instance": true, "instance 1": true, "instance 2": true, "instance 3": true, "instance 4": true,
+              "service": true, "service 1": true, "service 2": true, "service 3": true, "service 4": true,
+              "instance_name": true, "instance_name 1": true, "instance_name 2": true, "instance_name 3": true, "instance_name 4": true
+            },
+            "indexByName": { "node": 0, "Value #A": 1, "Value #B": 2, "Value #C": 3, "Value #D": 4 },
+            "renameByName": { "node": "Node", "Value #A": "Total", "Value #B": "Used", "Value #C": "Free", "Value #D": "Usage" }
+        }}
       ]
     },
 
@@ -206,14 +247,55 @@
       "targets": [{ "refId": "A", "expr": "panel_node_disk_usage_percent{instance=~\"$instance\"}", "legendFormat": "{{node}}" }]
     },
     {
-      "id": 31, "title": "Disk usage (used / total)", "type": "bargauge",
+      "id": 31, "title": "Disk per node", "type": "table",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 38 },
-      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "reduceOptions": { "calcs": ["lastNotNull"] } },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "bytes" }, "overrides": [] },
+      "description": "Total / Used / Free + процент. Free = total - used (вычисляется на лету).",
+      "options": { "showHeader": true, "footer": { "show": false }, "cellHeight": "sm" },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "Total" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Used" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Free" }, "properties": [
+          { "id": "unit", "value": "bytes" }, { "id": "custom.width", "value": 110 },
+          { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+          { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }
+        ]},
+        { "matcher": { "id": "byName", "options": "Usage" }, "properties": [
+          { "id": "unit", "value": "percentunit" }, { "id": "min", "value": 0 }, { "id": "max", "value": 1 }, { "id": "decimals", "value": 1 },
+          { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+          { "id": "thresholds", "value": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "orange", "value": 0.7 }, { "color": "red", "value": 0.9 }
+          ]}}
+        ]}
+      ]},
       "targets": [
-        { "refId": "A", "expr": "panel_node_disk_total_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}} total" },
-        { "refId": "B", "expr": "panel_node_disk_used_bytes{instance=~\"$instance\"}",  "legendFormat": "{{node}} used" }
+        { "refId": "A", "expr": "panel_node_disk_total_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "B", "expr": "panel_node_disk_used_bytes{instance=~\"$instance\"}",  "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "C", "expr": "panel_node_disk_total_bytes{instance=~\"$instance\"} - panel_node_disk_used_bytes{instance=~\"$instance\"}", "legendFormat": "{{node}}", "format": "table", "instant": true },
+        { "refId": "D", "expr": "panel_node_disk_used_bytes{instance=~\"$instance\"} / clamp_min(panel_node_disk_total_bytes{instance=~\"$instance\"}, 1)", "legendFormat": "{{node}}", "format": "table", "instant": true }
+      ],
+      "transformations": [
+        { "id": "joinByField", "options": { "byField": "node", "mode": "outer" } },
+        { "id": "organize", "options": {
+            "excludeByName": {
+              "Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true,
+              "__name__": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true,
+              "job": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true,
+              "instance": true, "instance 1": true, "instance 2": true, "instance 3": true, "instance 4": true,
+              "service": true, "service 1": true, "service 2": true, "service 3": true, "service 4": true,
+              "instance_name": true, "instance_name 1": true, "instance_name 2": true, "instance_name 3": true, "instance_name 4": true
+            },
+            "indexByName": { "node": 0, "Value #A": 1, "Value #B": 2, "Value #C": 3, "Value #D": 4 },
+            "renameByName": { "node": "Node", "Value #A": "Total", "Value #B": "Used", "Value #C": "Free", "Value #D": "Usage" }
+        }}
       ]
     },
     {
