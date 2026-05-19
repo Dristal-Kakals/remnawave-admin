@@ -149,15 +149,13 @@ services:
     profiles: [monitoring]
     user: "65534:65534"  # nobody:nobody, владелец /prometheus в образе
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus.yml.tmpl:/etc/prometheus/prometheus.yml.tmpl:ro
+      - ./monitoring/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
       - prometheus_data:/prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
-      - --web.console.libraries=/usr/share/prometheus/console_libraries
-      - --web.console.templates=/usr/share/prometheus/consoles
-      - --web.enable-lifecycle
+    environment:
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      PROMETHEUS_RETENTION: ${PROMETHEUS_RETENTION:-30d}
+    entrypoint: ["/bin/sh", "/usr/local/bin/entrypoint.sh"]
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     networks:
