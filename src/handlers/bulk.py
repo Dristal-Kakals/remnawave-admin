@@ -2,7 +2,7 @@
 import asyncio
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from aiogram.utils.i18n import gettext as _
 
 from src.handlers.common import _edit_text_safe, _not_admin, _send_clean_message
@@ -214,6 +214,28 @@ async def cb_bulk_users_actions(callback: CallbackQuery) -> None:
     parts = callback.data.split(":")
     action = parts[2] if len(parts) > 2 else None
     try:
+        # Confirm step for destructive bulk actions
+        if action in ("reset", "delete") and "confirm" not in parts:
+            label = _("bulk.reset_all_traffic") if action == "reset" else _("bulk.template_delete_disabled") if len(parts) > 3 and parts[3] == "DISABLED" else _("bulk.template_delete_expired")
+            confirm_data = callback.data + ":confirm"
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="✅ " + _("common.confirm", default="Подтвердить"), callback_data=confirm_data),
+                    InlineKeyboardButton(text="❌ " + _("common.cancel", default="Отмена"), callback_data="bulk:users:menu"),
+                ],
+            ])
+            await _edit_text_safe(
+                callback.message,
+                f"⚠️ <b>{label}</b>\n\n{_('bulk.confirm_warning', default='Это действие необратимо. Вы уверены?')}",
+                reply_markup=keyboard,
+                parse_mode="HTML",
+            )
+            return
+
+        # Remove "confirm" from parts for actual execution
+        parts = [p for p in parts if p != "confirm"]
+        action = parts[2] if len(parts) > 2 else None
+
         if action == "reset":
             await api_client.bulk_reset_traffic_all_users()
             await _edit_text_safe(callback.message, _("bulk.done"), reply_markup=bulk_users_keyboard())

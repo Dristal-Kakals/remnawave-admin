@@ -1159,6 +1159,16 @@ async def cb_user_actions(callback: CallbackQuery) -> None:
         if action == "enable":
             await api_client.enable_user(user_uuid)
         elif action == "disable":
+            if "confirm" not in callback.data:
+                from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(text="✅ " + _("common.confirm", default="Да, отключить"), callback_data=f"user:{user_uuid}:disable:confirm"),
+                        InlineKeyboardButton(text="❌ " + _("common.cancel", default="Отмена"), callback_data=f"user:{user_uuid}"),
+                    ],
+                ])
+                await _edit_text_safe(callback.message, f"⚠️ <b>{_('user.disable_confirm', default='Отключить пользователя?')}</b>", reply_markup=keyboard, parse_mode="HTML")
+                return
             await api_client.disable_user(user_uuid)
         elif action == "reset":
             await api_client.reset_user_traffic(user_uuid)

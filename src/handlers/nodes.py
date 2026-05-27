@@ -1651,15 +1651,34 @@ async def cb_node_actions(callback: CallbackQuery) -> None:
     if await _not_admin(callback):
         return
     await callback.answer()
-    _prefix, node_uuid, action = callback.data.split(":")
+    parts = callback.data.split(":")
+    _prefix, node_uuid, action = parts[0], parts[1], parts[2] if len(parts) > 2 else ""
     try:
         if action == "enable":
             await api_client.enable_node(node_uuid)
         elif action == "disable":
             await api_client.disable_node(node_uuid)
         elif action == "restart":
+            if "confirm" not in callback.data:
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(text="✅ " + _("common.confirm", default="Подтвердить"), callback_data=f"node:{node_uuid}:restart:confirm"),
+                        InlineKeyboardButton(text="❌ " + _("common.cancel", default="Отмена"), callback_data=f"node:{node_uuid}"),
+                    ],
+                ])
+                await _edit_text_safe(callback.message, f"⚠️ <b>{_('node.restart_confirm', default='Перезапустить ноду?')}</b>\n\n{_('node.restart_warning', default='Все активные соединения на ноде будут разорваны.')}", reply_markup=keyboard, parse_mode="HTML")
+                return
             await api_client.restart_node(node_uuid)
         elif action == "reset":
+            if "confirm" not in callback.data:
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(text="✅ " + _("common.confirm", default="Подтвердить"), callback_data=f"node:{node_uuid}:reset:confirm"),
+                        InlineKeyboardButton(text="❌ " + _("common.cancel", default="Отмена"), callback_data=f"node:{node_uuid}"),
+                    ],
+                ])
+                await _edit_text_safe(callback.message, f"⚠️ <b>{_('node.reset_confirm', default='Сбросить трафик ноды?')}</b>", reply_markup=keyboard, parse_mode="HTML")
+                return
             await api_client.reset_node_traffic(node_uuid)
         else:
             await callback.answer(_("errors.generic"), show_alert=True)

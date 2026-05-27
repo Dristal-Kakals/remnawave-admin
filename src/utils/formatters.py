@@ -314,7 +314,7 @@ def format_hwid_device(device: dict, index: int | None = None, show_hwid: bool =
     # HWID (укороченный)
     if show_hwid and hwid:
         hwid_short = hwid[:16] + "..." if len(hwid) > 16 else hwid
-        parts.append(f"ID: {hwid_short}")
+        parts.append(f"ID: <code>{hwid_short}</code>")
 
     return f"{prefix}{' | '.join(parts)}"
 

@@ -44,16 +44,15 @@ async def errors_handler(event: ErrorEvent) -> None:
         # Для неизвестных ошибок показываем общее сообщение с кодом
         # Используем try-except для случая, когда i18n контекст не установлен
         try:
-            error_message = _("errors.generic") + f"\n🔢 Код: `{error_code}`"
+            error_message = _("errors.generic") + f"\n🔢 Код: <code>{error_code}</code>"
         except LookupError:
-            # Fallback если i18n контекст не установлен
-            error_message = f"⚠️ Что-то пошло не так. Повтори чуть позже.\n🔢 Код: `{error_code}`"
-    
+            error_message = f"⚠️ Что-то пошло не так. Повтори чуть позже.\n🔢 Код: <code>{error_code}</code>"
+
     try:
         if update.message:
             user_id = update.message.from_user.id if update.message.from_user else None
             payload = update.message.text
-            await update.message.answer(error_message, parse_mode="Markdown")
+            await update.message.answer(error_message, parse_mode="HTML")
         elif update.callback_query:
             user_id = update.callback_query.from_user.id if update.callback_query.from_user else None
             payload = update.callback_query.data

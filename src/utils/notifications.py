@@ -367,8 +367,26 @@ async def send_user_notification(
             "bandwidth_threshold": "user.bandwidth_usage_threshold_reached",
         }
         event_id = action_to_event.get(action, f"user.{action}")
+        push_titles = {
+            "created": "Новый пользователь",
+            "updated": "Изменён пользователь",
+            "deleted": "Удалён пользователь",
+            "disabled": "Пользователь отключён",
+            "enabled": "Пользователь включён",
+            "limited": "Лимит трафика исчерпан",
+            "expired": "Подписка истекла",
+            "traffic_reset": "Трафик сброшен",
+            "revoked": "Подписка отозвана",
+            "first_connected": "Первое подключение",
+            "expires_in_72h": "Подписка истекает через 72ч",
+            "expires_in_48h": "Подписка истекает через 48ч",
+            "expires_in_24h": "Подписка истекает через 24ч",
+            "expired_24h_ago": "Подписка истекла 24ч назад",
+            "bandwidth_threshold": "Порог трафика превышен",
+            "not_connected": "Нет подключения",
+        }
         _push_dispatch(
-            title=f"Юзер: {action}",
+            title=push_titles.get(action, f"Юзер: {action}"),
             body=info.get("username") or info.get("uuid", "")[:8],
             notification_type="info",
             source="panel.webhook",
