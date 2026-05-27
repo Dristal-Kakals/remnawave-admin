@@ -3,9 +3,6 @@ Collector API для приёма данных о подключениях от 
 
 Endpoint: POST /batch
 Аутентификация: Bearer token (токен агента из таблицы nodes.agent_token)
-
-Заменяет аналогичный endpoint из бота (src/services/collector.py),
-перенося всю логику violation detection в web backend.
 """
 import asyncio
 import json

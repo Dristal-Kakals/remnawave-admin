@@ -239,16 +239,8 @@ async def _fetch_nodes_with_keyboard(user_id: int | None = None, page: int = 0) 
 
 
 async def _fetch_nodes_realtime_text() -> str:
-    """Получает текст со статистикой нод в реальном времени."""
-    try:
-        data = await api_client.get_nodes_realtime_usage()
-        usages = data.get("response", [])
-        return build_nodes_realtime_usage(usages, _)
-    except UnauthorizedError:
-        return _("errors.unauthorized")
-    except ApiClientError:
-        logger.exception("⚠️ Nodes realtime fetch failed")
-        return _("errors.generic")
+    """DEPRECATED: Panel 2.7 removed realtime endpoint. Returns stub message."""
+    return _("node.realtime_empty")
 
 
 async def _fetch_nodes_range_text(start: str, end: str) -> str:
