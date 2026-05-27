@@ -479,11 +479,12 @@ function QueueTab({ canEdit }: { canEdit: boolean; canDelete: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [expandedQueueId, setExpandedQueueId] = useState<number | null>(null)
 
   const { data: stats } = useQuery({
     queryKey: ['mailserver-queue-stats'],
     queryFn: mailserverApi.getQueueStats,
-    refetchInterval: 10000,
+    refetchInterval: 30_000,
   })
 
   const { data: queue, isLoading, isError, refetch } = useQuery({
@@ -492,7 +493,13 @@ function QueueTab({ canEdit }: { canEdit: boolean; canDelete: boolean }) {
       status: statusFilter === 'all' ? undefined : statusFilter,
       limit: 100,
     }),
-    refetchInterval: 10000,
+    refetchInterval: 30_000,
+  })
+
+  const { data: queueDetail, isLoading: queueDetailLoading } = useQuery({
+    queryKey: ['mailserver-queue-detail', expandedQueueId],
+    queryFn: () => mailserverApi.getQueueItem(expandedQueueId!),
+    enabled: !!expandedQueueId,
   })
 
   const retryMut = useMutation({
@@ -565,7 +572,14 @@ function QueueTab({ canEdit }: { canEdit: boolean; canDelete: boolean }) {
       ) : (
         <div className="space-y-2">
           {queue.map((item) => (
-            <Card key={item.id} className="bg-[var(--glass-bg)] border-[var(--glass-border)]">
+            <Card
+              key={item.id}
+              className={cn(
+                "bg-[var(--glass-bg)] border-[var(--glass-border)] cursor-pointer transition-colors hover:bg-[var(--glass-bg-hover)]",
+                expandedQueueId === item.id && "border-primary/30"
+              )}
+              onClick={() => setExpandedQueueId(expandedQueueId === item.id ? null : item.id)}
+            >
               <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -585,7 +599,7 @@ function QueueTab({ canEdit }: { canEdit: boolean; canDelete: boolean }) {
                       <p className="text-xs text-red-400 truncate mt-1">{item.last_error}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <span className="text-xs text-muted-foreground">
                       {item.attempts}/{item.max_attempts}
                     </span>
@@ -604,6 +618,31 @@ function QueueTab({ canEdit }: { canEdit: boolean; canDelete: boolean }) {
                     )}
                   </div>
                 </div>
+
+                {/* Expanded: show email body */}
+                {expandedQueueId === item.id && queueDetail && (
+                  <div className="mt-3 pt-3 border-t border-[var(--glass-border)] animate-fade-in">
+                    {queueDetail.body_html ? (
+                      <iframe
+                        title="Email preview"
+                        srcDoc={queueDetail.body_html}
+                        className="w-full min-h-[200px] max-h-[400px] rounded-lg bg-white"
+                        sandbox="allow-same-origin"
+                      />
+                    ) : queueDetail.body_text ? (
+                      <pre className="text-sm text-dark-100 whitespace-pre-wrap break-words bg-[var(--glass-bg)] p-3 rounded-lg max-h-[400px] overflow-auto">
+                        {queueDetail.body_text}
+                      </pre>
+                    ) : (
+                      <p className="text-sm text-dark-400 italic">{t('mailServer.noContent', { defaultValue: 'No content' })}</p>
+                    )}
+                  </div>
+                )}
+                {expandedQueueId === item.id && queueDetailLoading && (
+                  <div className="mt-3 pt-3 border-t border-[var(--glass-border)] flex items-center justify-center py-6">
+                    <RefreshCw className="w-4 h-4 animate-spin text-dark-400" />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
