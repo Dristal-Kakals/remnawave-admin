@@ -6448,7 +6448,7 @@ class DatabaseService:
                     """
                     SELECT user_uuid::text, excluded_analyzers
                     FROM violation_whitelist
-                    WHERE user_uuid = ANY($1::text[])
+                    WHERE user_uuid = ANY($1::uuid[])
                       AND (expires_at IS NULL OR expires_at > NOW())
                     """,
                     to_fetch,
@@ -6487,7 +6487,7 @@ class DatabaseService:
         try:
             async with self.acquire() as conn:
                 rows = await conn.fetch(
-                    "SELECT uuid::text, raw_data FROM users WHERE uuid = ANY($1::text[])",
+                    "SELECT uuid::text, raw_data FROM users WHERE uuid = ANY($1::uuid[])",
                     user_uuids,
                 )
 
@@ -6535,7 +6535,7 @@ class DatabaseService:
                     """
                     SELECT id, user_uuid, ip_address, node_uuid, connected_at, device_info
                     FROM user_connections
-                    WHERE user_uuid = ANY($1::text[])
+                    WHERE user_uuid = ANY($1::uuid[])
                       AND disconnected_at IS NULL
                       AND connected_at > NOW() - make_interval(mins => $2)
                     ORDER BY user_uuid, connected_at DESC
@@ -6602,7 +6602,7 @@ class DatabaseService:
                            avg_daily_unique_ips, max_daily_unique_ips,
                            typical_hours, avg_session_duration_min, data_points
                     FROM user_baselines
-                    WHERE user_uuid = ANY($1::text[])
+                    WHERE user_uuid = ANY($1::uuid[])
                       AND computed_at > NOW() - make_interval(secs => $2)
                     """,
                     user_uuids, max_age_seconds,
@@ -6649,7 +6649,7 @@ class DatabaseService:
                     JOIN user_hwid_devices h2
                       ON h1.hwid = h2.hwid AND h2.user_uuid != h1.user_uuid
                     JOIN users u ON h2.user_uuid = u.uuid
-                    WHERE h1.user_uuid = ANY($1::text[])
+                    WHERE h1.user_uuid = ANY($1::uuid[])
                     ORDER BY h1.user_uuid, h2.hwid, u.username
                     """,
                     user_uuids,
@@ -6697,7 +6697,7 @@ class DatabaseService:
                            device_model, app_version, user_agent,
                            created_at, updated_at
                     FROM user_hwid_devices
-                    WHERE user_uuid = ANY($1::text[])
+                    WHERE user_uuid = ANY($1::uuid[])
                     ORDER BY user_uuid, created_at DESC
                     """,
                     user_uuids,
@@ -6722,7 +6722,7 @@ class DatabaseService:
         try:
             async with self.acquire() as conn:
                 rows = await conn.fetch(
-                    "SELECT * FROM users WHERE uuid = ANY($1::text[])",
+                    "SELECT * FROM users WHERE uuid = ANY($1::uuid[])",
                     user_uuids,
                 )
             return {
