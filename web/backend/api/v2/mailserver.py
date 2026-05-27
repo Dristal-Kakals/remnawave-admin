@@ -1,11 +1,29 @@
 """Mail server API endpoints."""
 import json
 import logging
+from email.header import decode_header as _decode_mime_header
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from web.backend.core.errors import api_error, E
+
+
+def _decode_subject(raw: str | None) -> str:
+    """Decode MIME-encoded subject like =?utf-8?b?...?= to readable text."""
+    if not raw or '=?' not in raw:
+        return raw or ''
+    try:
+        parts = _decode_mime_header(raw)
+        decoded = []
+        for data, charset in parts:
+            if isinstance(data, bytes):
+                decoded.append(data.decode(charset or 'utf-8', errors='replace'))
+            else:
+                decoded.append(data)
+        return ' '.join(decoded)
+    except Exception:
+        return raw
 from web.backend.api.deps import AdminUser, get_client_ip, require_permission
 from web.backend.core.rbac import write_audit_log
 from web.backend.schemas.mailserver import (
@@ -214,7 +232,12 @@ async def list_queue(
 
     async with db_service.acquire() as conn:
         rows = await conn.fetch(query, *params)
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["subject"] = _decode_subject(d.get("subject"))
+        result.append(d)
+    return result
 
 
 @router.get("/queue/stats", response_model=QueueStats)
@@ -247,7 +270,9 @@ async def get_queue_item(
         row = await conn.fetchrow("SELECT * FROM email_queue WHERE id = $1", item_id)
     if not row:
         raise api_error(404, E.QUEUE_ITEM_NOT_FOUND)
-    return dict(row)
+    d = dict(row)
+    d["subject"] = _decode_subject(d.get("subject"))
+    return d
 
 
 @router.post("/queue/{item_id}/retry")
@@ -328,7 +353,12 @@ async def list_inbox(
 
     async with db_service.acquire() as conn:
         rows = await conn.fetch(query, *params)
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["subject"] = _decode_subject(d.get("subject"))
+        result.append(d)
+    return result
 
 
 @router.get("/inbox/{item_id}", response_model=InboxDetail)
@@ -342,7 +372,9 @@ async def get_inbox_item(
         row = await conn.fetchrow("SELECT * FROM email_inbox WHERE id = $1", item_id)
     if not row:
         raise api_error(404, E.MESSAGE_NOT_FOUND)
-    return dict(row)
+    d = dict(row)
+    d["subject"] = _decode_subject(d.get("subject"))
+    return d
 
 
 @router.post("/inbox/mark-read")
