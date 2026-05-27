@@ -5,12 +5,16 @@ Endpoint: POST /batch
 Аутентификация: Bearer token (токен агента из таблицы nodes.agent_token)
 """
 import asyncio
+import hashlib
+import hmac as hmac_mod
 import json
 import logging
+import os
 import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -1237,3 +1241,75 @@ async def collector_stats(request: Request):
             "worker_started_at": _stats["worker_started_at"],
         },
     )
+
+
+# ── Webhook proxy ─────────────────────────────────────────────────
+
+def _verify_webhook_signature(request: Request, body: bytes) -> bool:
+    """Verify HMAC-SHA256 signature from Panel webhook."""
+    secret = os.environ.get("WEBHOOK_SECRET", "")
+    if not secret:
+        client_host = request.client.host if request.client else None
+        return client_host in ("127.0.0.1", "::1", "localhost")
+
+    signature = (
+        request.headers.get("x-remnawave-signature")
+        or request.headers.get("X-Remnawave-Signature")
+        or ""
+    )
+    if not signature:
+        return False
+
+    if signature == secret:
+        return True
+
+    try:
+        expected = hmac_mod.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        return hmac_mod.compare_digest(expected, signature)
+    except Exception:
+        return False
+
+
+@router.post("/webhook")
+async def collector_webhook(request: Request):
+    """Webhook proxy: sync to DB, then forward to bot for Telegram notifications."""
+    body = await request.body()
+
+    if not _verify_webhook_signature(request, body):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    try:
+        data = json.loads(body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    event = data.get("event", "")
+    event_data = data.get("data", {})
+
+    logger.info("Webhook received: %s", event)
+
+    # 1. Sync to DB (collector owns sync)
+    try:
+        from shared.sync import sync_service
+        await sync_service.handle_webhook_event(event, event_data)
+    except Exception as e:
+        logger.warning("Webhook sync failed for %s: %s", event, e)
+
+    # 2. Forward to bot for Telegram notifications (fire-and-forget)
+    bot_webhook_url = os.environ.get("BOT_WEBHOOK_URL", "http://bot:8080/webhook")
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                bot_webhook_url,
+                content=body,
+                headers={
+                    "content-type": "application/json",
+                    "x-remnawave-signature": request.headers.get("x-remnawave-signature", ""),
+                },
+            )
+            if resp.status_code != 200:
+                logger.warning("Bot webhook forward failed: %d", resp.status_code)
+    except Exception as e:
+        logger.warning("Bot webhook forward error: %s", e)
+
+    return JSONResponse(status_code=200, content={"status": "ok", "event": event})
