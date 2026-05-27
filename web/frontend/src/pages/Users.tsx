@@ -34,6 +34,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import client from '../api/client'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -285,6 +286,7 @@ const SortHeader = memo(function SortHeader({
   return (
     <button
       onClick={() => onSort(field)}
+      aria-sort={isActive ? (currentOrder === 'asc' ? 'ascending' : 'descending') : undefined}
       className={cn(
         "flex items-center gap-1 hover:text-white transition-all duration-200",
         isActive && "text-primary-400"
@@ -1375,8 +1377,13 @@ export default function Users() {
           ))
         ) : users.length === 0 ? (
           <Card>
-            <CardContent className="p-4 text-center py-8 text-muted-foreground">
-              {hasAnyFilter ? t('users.usersNotFound') : t('users.noUsers')}
+            <CardContent className="p-4">
+              <EmptyState
+                icon={hasAnyFilter ? Search : UsersIcon}
+                title={hasAnyFilter ? t('users.usersNotFound') : t('users.noUsers')}
+                description={hasAnyFilter ? t('users.tryDifferentFilter', { defaultValue: '' }) : undefined}
+                size="sm"
+              />
             </CardContent>
           </Card>
         ) : (
