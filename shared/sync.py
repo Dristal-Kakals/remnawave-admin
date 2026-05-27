@@ -962,6 +962,8 @@ class SyncService:
             node_deltas: list[tuple[str, str, int]] = []
             # Accumulate per-node totals for traffic snapshots
             node_totals: dict[str, int] = {}
+            # Batch upsert buffer: (user_uuid, node_uuid, traffic_bytes)
+            traffic_upserts: list[tuple[str, str, int]] = []
 
             for node in active_nodes:
                 node_uuid = str(node["uuid"])
@@ -993,10 +995,8 @@ class SyncService:
                         # Compute delta from previous snapshot
                         old_bytes = old_snapshot.get(user_uuid, {}).get(node_uuid, 0)
                         if new_bytes > old_bytes:
-                            # Same day, traffic grew — only count the difference
                             delta = new_bytes - old_bytes
                         elif new_bytes < old_bytes:
-                            # New day or counter reset — take full new value
                             delta = new_bytes
                         else:
                             delta = 0
@@ -1005,10 +1005,7 @@ class SyncService:
                             raw_deltas[user_uuid] = raw_deltas.get(user_uuid, 0) + delta
                             node_deltas.append((user_uuid, node_uuid, delta))
 
-                        await db_service.upsert_user_node_traffic(
-                            user_uuid, node_uuid, new_bytes
-                        )
-                        total_synced += 1
+                        traffic_upserts.append((user_uuid, node_uuid, new_bytes))
 
                     node_totals[node_uuid] = node_traffic_sum
                 except Exception as e:
@@ -1016,6 +1013,10 @@ class SyncService:
                         "Failed to sync traffic for node %s: %s",
                         node.get("name", node_uuid), e,
                     )
+
+            # Batch upsert all traffic records at once (1 query instead of N)
+            if traffic_upserts:
+                total_synced = await db_service.batch_upsert_user_node_traffic(traffic_upserts)
 
             # Accumulate raw traffic deltas into users table
             if raw_deltas:

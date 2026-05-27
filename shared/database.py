@@ -2652,6 +2652,32 @@ class DatabaseService:
                 user_uuid, node_uuid, traffic_bytes,
             )
 
+    async def batch_upsert_user_node_traffic(
+        self, records: List[tuple]
+    ) -> int:
+        """Batch upsert traffic records via UNNEST. Each record: (user_uuid, node_uuid, traffic_bytes)."""
+        if not self.is_connected or not records:
+            return 0
+        user_uuids = [r[0] for r in records]
+        node_uuids = [r[1] for r in records]
+        traffic_bytes = [r[2] for r in records]
+        try:
+            async with self.acquire() as conn:
+                result = await conn.execute(
+                    """
+                    INSERT INTO user_node_traffic (user_uuid, node_uuid, traffic_bytes, synced_at)
+                    SELECT u::uuid, n::uuid, t, NOW()
+                    FROM UNNEST($1::text[], $2::text[], $3::bigint[]) AS r(u, n, t)
+                    ON CONFLICT (user_uuid, node_uuid)
+                    DO UPDATE SET traffic_bytes = EXCLUDED.traffic_bytes, synced_at = NOW()
+                    """,
+                    user_uuids, node_uuids, traffic_bytes,
+                )
+                return int(result.split()[-1]) if result else 0
+        except Exception as e:
+            logger.warning("batch_upsert_user_node_traffic failed: %s", e)
+            return 0
+
     async def get_username_to_uuid_map(self, usernames: List[str]) -> Dict[str, str]:
         """Get a mapping of username -> uuid for a list of usernames."""
         if not self.is_connected or not usernames:
