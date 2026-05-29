@@ -7,7 +7,7 @@ import logging
 import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -83,19 +83,33 @@ async def list_backups(
 @router.get("/log", response_model=List[BackupLogItem])
 async def get_backup_log(
     limit: int = 50,
+    search: Optional[str] = None,
+    backup_type: Optional[str] = None,
     admin: AdminUser = Depends(require_permission("backups", "view")),
 ):
-    """Get backup operation history."""
+    """Get backup operation history with optional search and type filter."""
     try:
         from shared.database import db_service
         if not db_service.is_connected:
             return []
+
+        conditions = []
+        params: list = []
+        if search:
+            params.append(f"%{search.strip()}%")
+            conditions.append(f"filename ILIKE ${len(params)}")
+        if backup_type:
+            params.append(backup_type)
+            conditions.append(f"backup_type = ${len(params)}")
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+        params.append(limit)
         async with db_service.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT id, filename, backup_type, size_bytes, status, "
                 "created_by_username, notes, created_at "
-                "FROM backup_log ORDER BY created_at DESC LIMIT $1",
-                limit,
+                f"FROM backup_log {where} ORDER BY created_at DESC LIMIT ${len(params)}",
+                *params,
             )
         result = []
         for r in rows:
@@ -537,3 +551,114 @@ async def import_full_config(
                 result["skipped"]["alert_rules"] = skipped
 
     return result
+
+
+# ── Disk usage ──────────────────────────────────────────────────
+
+@router.get("/disk-usage")
+async def get_disk_usage(
+    admin: AdminUser = Depends(require_permission("backups", "view")),
+):
+    """Get backup directory disk usage stats."""
+    from web.backend.core.backup_service import get_disk_usage
+    return get_disk_usage()
+
+
+# ── Upload backup file ──────────────────────────────────────────
+
+@router.post("/upload", response_model=BackupFileItem, status_code=201)
+async def upload_backup(
+    file: UploadFile = File(...),
+    admin: AdminUser = Depends(require_permission("backups", "create")),
+):
+    """Upload a backup file (.sql.gz or .json)."""
+    from web.backend.core.backup_service import save_uploaded_file
+
+    if not file.filename:
+        raise api_error(400, "INVALID_FILENAME")
+
+    content = await file.read()
+    max_size = 500 * 1024 * 1024  # 500 MB
+    if len(content) > max_size:
+        raise api_error(400, "FILE_TOO_LARGE", f"Max size: {max_size // 1024 // 1024} MB")
+
+    try:
+        result = save_uploaded_file(file.filename, content)
+    except ValueError as e:
+        raise api_error(400, "INVALID_FILE_TYPE", str(e))
+    except FileExistsError as e:
+        raise api_error(409, "FILE_EXISTS", str(e))
+
+    try:
+        from shared.database import db_service
+        if db_service.is_connected:
+            async with db_service.acquire() as conn:
+                await conn.execute(
+                    "INSERT INTO backup_log (filename, backup_type, size_bytes, status, created_by_username) "
+                    "VALUES ($1, 'upload', $2, 'success', $3)",
+                    result["filename"], result["size_bytes"], admin.username,
+                )
+    except Exception:
+        pass
+
+    return BackupFileItem(**result)
+
+
+# ── Rotate backups ──────────────────────────────────────────────
+
+@router.post("/rotate")
+async def rotate_backups_endpoint(
+    keep_count: int = 10,
+    keep_days: int = 30,
+    admin: AdminUser = Depends(require_permission("backups", "delete")),
+):
+    """Manually rotate old backups (keep N newest or within N days)."""
+    from web.backend.core.backup_service import rotate_backups
+    deleted = rotate_backups(keep_count=keep_count, keep_days=keep_days)
+    return {"status": "ok", "deleted": deleted}
+
+
+# ── Send backup to Telegram ─────────────────────────────────────
+
+class TelegramSendRequest(BaseModel):
+    filename: str
+    chat_id: Optional[str] = None
+    topic_id: Optional[int] = None
+
+
+@router.post("/send-telegram")
+async def send_backup_telegram(
+    data: TelegramSendRequest,
+    admin: AdminUser = Depends(require_permission("backups", "view")),
+):
+    """Send a backup file to a Telegram chat/topic. Auto-splits files >49 MB."""
+    from web.backend.core.backup_service import send_backup_to_telegram
+    from web.backend.core.config import get_web_settings
+
+    settings = get_web_settings()
+    chat_id = data.chat_id or settings.notifications_chat_id
+    if not chat_id:
+        raise api_error(400, "NO_CHAT_ID", "Specify chat_id or configure NOTIFICATIONS_CHAT_ID")
+
+    # Default to the "Services" topic from settings unless explicitly overridden
+    topic_id = data.topic_id
+    if topic_id is None:
+        topic_raw = settings.get_topic_for("service")
+        if topic_raw:
+            try:
+                topic_id = int(topic_raw)
+            except (TypeError, ValueError):
+                topic_id = None
+
+    try:
+        result = await send_backup_to_telegram(
+            filename=data.filename,
+            chat_id=chat_id,
+            topic_id=topic_id,
+        )
+        return result
+    except FileNotFoundError:
+        raise api_error(404, "FILE_NOT_FOUND")
+    except Exception as e:
+        logger.error("Failed to send backup to Telegram: %s", e)
+        raise api_error(500, "TELEGRAM_SEND_FAILED", str(e))

@@ -356,13 +356,21 @@ async def _delete_ctx_message(ctx: dict, bot) -> None:
         )
 
 
+_CREATE_STAGES = ["username", "description", "expire", "traffic", "hwid", "telegram", "squad", "confirm"]
+
 async def _send_user_create_prompt(
     target: Message | CallbackQuery,
     text: str,
     reply_markup: InlineKeyboardMarkup | None = None,
     ctx: dict | None = None,
 ) -> None:
-    """Отправляет промпт для создания пользователя."""
+    """Отправляет промпт для создания пользователя с прогресс-индикатором."""
+    if ctx and ctx.get("stage") in _CREATE_STAGES:
+        idx = _CREATE_STAGES.index(ctx["stage"])
+        total = len(_CREATE_STAGES)
+        dots = "●" * (idx + 1) + "○" * (total - idx - 1)
+        text = f"<b>Шаг {idx + 1}/{total}</b>  {dots}\n\n{text}"
+
     bot = target.bot if isinstance(target, Message) else target.message.bot
     chat_id = target.chat.id if isinstance(target, Message) else target.message.chat.id
     message_id = ctx.get("bot_message_id") if ctx else None
@@ -1159,6 +1167,16 @@ async def cb_user_actions(callback: CallbackQuery) -> None:
         if action == "enable":
             await api_client.enable_user(user_uuid)
         elif action == "disable":
+            if "confirm" not in callback.data:
+                from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(text="✅ " + _("common.confirm", default="Да, отключить"), callback_data=f"user:{user_uuid}:disable:confirm"),
+                        InlineKeyboardButton(text="❌ " + _("common.cancel", default="Отмена"), callback_data=f"user:{user_uuid}"),
+                    ],
+                ])
+                await _edit_text_safe(callback.message, f"⚠️ <b>{_('user.disable_confirm', default='Отключить пользователя?')}</b>", reply_markup=keyboard, parse_mode="HTML")
+                return
             await api_client.disable_user(user_uuid)
         elif action == "reset":
             await api_client.reset_user_traffic(user_uuid)

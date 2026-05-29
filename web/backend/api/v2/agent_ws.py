@@ -105,10 +105,11 @@ async def agent_websocket(
 
     # Push blocked IPs to newly connected agent (always send, even if empty — clears stale rules)
     try:
+        from shared.database import db_service
         blocked = await db_service.get_all_active_blocked_ips()
         from web.backend.core.agent_hmac import sign_command_with_ts
         cmd = {"type": "sync_blocked_ips", "ips": blocked, "mode": "replace"}
-        payload, sig = sign_command_with_ts(cmd, agent_token)
+        payload, sig = sign_command_with_ts(cmd, token)
         await agent_manager.send_command(node_uuid, {
             "type": "command", "payload": payload, "signature": sig,
         })

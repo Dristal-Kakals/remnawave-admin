@@ -13,6 +13,8 @@ services:
       PYTHONPATH: /app
       MAXMIND_CITY_DB: /app/geoip/GeoLite2-City.mmdb
       MAXMIND_ASN_DB: /app/geoip/GeoLite2-ASN.mmdb
+      DB_POOL_MIN_SIZE: '2'
+      DB_POOL_MAX_SIZE: '5'
     volumes:
       - ./logs:/app/logs
       - geoip_data:/app/geoip
@@ -79,6 +81,14 @@ services:
   # Веб-панель
   # ===========================================
 
+  # APP_MODE (через .env):
+  #   full (default) — всё в одном контейнере, ничего не меняется
+  #   api            — только UI API, плагины, автоматизация (используй с профилем collector)
+  #
+  # Для разделения: в .env добавь APP_MODE=api и запусти:
+  #   docker compose --profile collector up -d
+  # Агенты остаются на 8081 (collector), админка на WEB_BACKEND_PORT (default 8081 в full, 8082 в api)
+
   web-backend:
     image: ghcr.io/case211/remnawave-admin-web-backend:latest
     container_name: remnawave-web-backend
@@ -88,25 +98,63 @@ services:
       - .env
     environment:
       WEB_HOST: '0.0.0.0'
-      WEB_PORT: '8081'
+      WEB_PORT: '${WEB_BACKEND_PORT:-8081}'
+      APP_MODE: '${APP_MODE:-full}'
+      REDIS_URL: '${REDIS_URL:-}'
       MAXMIND_CITY_DB: /app/geoip/GeoLite2-City.mmdb
       MAXMIND_ASN_DB: /app/geoip/GeoLite2-ASN.mmdb
       BACKUP_DIR: /app/backups
-      # Redis (опционально, нужен при >1 инстансе для общего кеша и rate limiting)
-      # REDIS_URL: redis://redis:6379/0
+    command: ["python", "-m", "uvicorn", "web.backend.main:app", "--host", "0.0.0.0", "--port", "${WEB_BACKEND_PORT:-8081}", "--no-access-log", "--log-level", "warning", "--ws", "websockets", "--ws-per-message-deflate", "true"]
     volumes:
       - ./logs:/app/logs
       - geoip_data:/app/geoip
       - ./backups:/app/backups
-      # Paid-plugin wheels are uploaded through the admin UI and live in
-      # this volume. Mounting it persists installed plugins across
-      # container recreation and lets operators drop wheels in via FTP
-      # too (see ./plugins/ next to docker-compose.yml).
       - ./plugins:/app/plugins
     ports:
-      - "${WEB_BACKEND_PORT:-8081}:8081"
+      - "${WEB_BACKEND_PORT:-8081}:${WEB_BACKEND_PORT:-8081}"
       - "${MAIL_INBOUND_PORT:-2525}:${MAIL_INBOUND_PORT:-2525}"
       - "${MAIL_SUBMISSION_PORT:-587}:${MAIL_SUBMISSION_PORT:-587}"
+    networks:
+      - remnawave-network
+    depends_on:
+      remnawave-admin-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${WEB_BACKEND_PORT:-8081}/api/v2/health')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ===========================================
+  # Collector (опционально — отдельный контейнер для violation detection)
+  # Включить: docker compose --profile collector up -d
+  # При включении web-backend автоматически переключается в API-only режим
+  # ===========================================
+
+  web-collector:
+    image: ghcr.io/case211/remnawave-admin-web-backend:latest
+    container_name: remnawave-web-collector
+    restart: unless-stopped
+    init: true
+    profiles: [collector]
+    env_file:
+      - .env
+    environment:
+      WEB_HOST: '0.0.0.0'
+      WEB_PORT: '8081'
+      APP_MODE: 'collector'
+      REDIS_URL: '${REDIS_URL:-}'
+      WEBHOOK_SECRET: '${WEBHOOK_SECRET:-}'
+      BOT_WEBHOOK_URL: 'http://bot:${WEBHOOK_PORT:-8080}/webhook'
+      MAXMIND_CITY_DB: /app/geoip/GeoLite2-City.mmdb
+      MAXMIND_ASN_DB: /app/geoip/GeoLite2-ASN.mmdb
+    command: ["python", "-m", "uvicorn", "web.backend.main:app", "--host", "0.0.0.0", "--port", "8081", "--no-access-log", "--log-level", "warning"]
+    volumes:
+      - ./logs:/app/logs
+      - geoip_data:/app/geoip
+    ports:
+      - "8081:8081"
     networks:
       - remnawave-network
     depends_on:
@@ -117,7 +165,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 60s
 
   web-frontend:
     image: ghcr.io/case211/remnawave-admin-web-frontend:latest
@@ -171,29 +219,33 @@ services:
       start_period: 30s
 
   # ===========================================
-  # Redis (опционально, раскомментировать при >1 инстансе web-backend
-  # для общего кеша аналитики и distributed rate limiting)
+  # Redis (--profile redis)
+  # Общий кэш аналитики + distributed rate limiting между контейнерами.
+  # Включить: docker compose --profile redis up -d
+  # В .env добавить: REDIS_URL=redis://redis:6379/0
   # ===========================================
 
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: remnawave-redis
-  #   restart: unless-stopped
-  #   volumes:
-  #     - redis_data:/data
-  #   networks:
-  #     - remnawave-network
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
+  redis:
+    image: redis:7-alpine
+    container_name: remnawave-redis
+    restart: unless-stopped
+    profiles: [redis]
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    volumes:
+      - redis_data:/data
+    networks:
+      - remnawave-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   postgres_data:
   geoip_data:
   prometheus_data:
-  # redis_data:
+  redis_data:
 
 networks:
   remnawave-network:

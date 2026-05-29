@@ -1,6 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.i18n import gettext as _
 
+from src.keyboards.navigation import NavTarget, nav_row
+
 
 def user_create_description_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -51,6 +53,8 @@ def user_create_hwid_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(text=_("user.hwid_5"), callback_data="user_create:hwid:5"),
                 InlineKeyboardButton(text=_("user.hwid_10"), callback_data="user_create:hwid:10"),
+            ],
+            [
                 InlineKeyboardButton(text=_("user.hwid_unlimited"), callback_data="user_create:hwid:0"),
             ],
         ]
@@ -75,6 +79,7 @@ def user_create_confirm_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(text=_("user.confirm_create"), callback_data="user_create:confirm"),
                 InlineKeyboardButton(text=_("user.cancel_create"), callback_data="user_create:cancel"),
-            ]
+            ],
+            nav_row(NavTarget.USERS_MENU),
         ]
     )

@@ -40,8 +40,18 @@ export const backupApi = {
     return Array.isArray(data) ? data : []
   },
 
-  getLog: async (limit = 50): Promise<BackupLogItem[]> => {
-    const { data } = await client.get('/backups/log', { params: { limit } })
+  getLog: async (
+    limit = 50,
+    search?: string,
+    backupType?: string,
+  ): Promise<BackupLogItem[]> => {
+    const { data } = await client.get('/backups/log', {
+      params: {
+        limit,
+        ...(search ? { search } : {}),
+        ...(backupType ? { backup_type: backupType } : {}),
+      },
+    })
     return Array.isArray(data) ? data : []
   },
 
@@ -86,5 +96,29 @@ export const backupApi = {
   importFullConfig: async (config: Record<string, unknown>, strategy = 'skip', sections?: string[]) => {
     const { data } = await client.post('/backups/import-full-config', { config, strategy, sections })
     return data
+  },
+
+  getDiskUsage: async () => {
+    const { data } = await client.get('/backups/disk-usage')
+    return data as { backup_size_bytes: number; file_count: number; disk_free_bytes: number; disk_total_bytes: number }
+  },
+
+  uploadFile: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const { data } = await client.post('/backups/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  rotateBackups: async (keepCount = 10, keepDays = 30) => {
+    const { data } = await client.post('/backups/rotate', null, { params: { keep_count: keepCount, keep_days: keepDays } })
+    return data as { status: string; deleted: number }
+  },
+
+  sendToTelegram: async (filename: string, chatId?: string, topicId?: number) => {
+    const { data } = await client.post('/backups/send-telegram', { filename, chat_id: chatId, topic_id: topicId })
+    return data as { filename: string; parts_sent: number; size_bytes: number }
   },
 }

@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore'
 import { usePermissionStore } from './store/permissionStore'
 import { AppearanceProvider } from './components/AppearanceProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { OfflineIndicator } from './components/OfflineIndicator'
 import { clientLogger } from './lib/clientLogger'
 import { ForcePasswordChange } from './components/ForcePasswordChange'
 
@@ -71,7 +72,7 @@ function ProtectedShell() {
   return (
     <ProtectedRoute>
       <Layout>
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="flex items-center justify-center h-64 animate-pulse"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/users" element={<Users />} />
@@ -173,6 +174,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AppearanceProvider>
+        <OfflineIndicator />
         <BrowserRouter basename={routerBasename}>
           <Routes>
             {/* Public routes */}

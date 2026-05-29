@@ -423,12 +423,15 @@ const StatCard = memo(function StatCard({
         "animate-fade-in-up group relative overflow-hidden rounded-xl transition-all duration-300",
         onClick && "cursor-pointer hover:-translate-y-1 hover:shadow-lg"
       )}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
       onClick={onClick}
       style={{
         animationDelay: `${index * 0.06}s`,
         background: `linear-gradient(135deg, rgba(${cfg.rgb}, 0.06) 0%, var(--glass-bg) 50%, rgba(${cfg.rgb}, 0.03) 100%)`,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(var(--glass-blur, 24px))',
+        WebkitBackdropFilter: 'blur(var(--glass-blur, 24px))',
         border: '1px solid var(--glass-border)',
       }}
     >

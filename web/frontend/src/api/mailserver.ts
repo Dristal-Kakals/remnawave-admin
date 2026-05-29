@@ -164,6 +164,11 @@ export const mailserverApi = {
     return data
   },
 
+  getQueueItem: async (id: number) => {
+    const { data } = await client.get(`/mailserver/queue/${id}`)
+    return data
+  },
+
   retryQueueItem: async (id: number): Promise<void> => {
     await client.post(`/mailserver/queue/${id}/retry`)
   },

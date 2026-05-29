@@ -278,6 +278,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               return (
                 <div
                   key={entry.name}
+                  role="presentation"
+                  aria-hidden="true"
                   className="sidebar-section-title px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-dark-400 select-none"
                 >
                   {t(entry.name)}
@@ -621,11 +623,15 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <div
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+        aria-label={mobileOpen ? "Navigation" : undefined}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col",
           "glass-heavy animate-fade-in",

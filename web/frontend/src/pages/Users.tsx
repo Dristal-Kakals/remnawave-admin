@@ -34,6 +34,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import client from '../api/client'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -200,7 +201,7 @@ const OnlineIndicator = memo(function OnlineIndicator({ onlineAt }: { onlineAt: 
 })
 
 // Action dropdown
-function UserActions({
+const UserActions = memo(function UserActions({
   user,
   onEnable,
   onDisable,
@@ -263,7 +264,7 @@ function UserActions({
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
+})
 
 // Sortable header
 const SortHeader = memo(function SortHeader({
@@ -285,6 +286,7 @@ const SortHeader = memo(function SortHeader({
   return (
     <button
       onClick={() => onSort(field)}
+      aria-sort={isActive ? (currentOrder === 'asc' ? 'ascending' : 'descending') : undefined}
       className={cn(
         "flex items-center gap-1 hover:text-white transition-all duration-200",
         isActive && "text-primary-400"
@@ -894,7 +896,7 @@ export default function Users() {
         sort_order: sortOrder,
       }),
     retry: 2,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 
   // Mutations
@@ -1375,8 +1377,13 @@ export default function Users() {
           ))
         ) : users.length === 0 ? (
           <Card>
-            <CardContent className="p-4 text-center py-8 text-muted-foreground">
-              {hasAnyFilter ? t('users.usersNotFound') : t('users.noUsers')}
+            <CardContent className="p-4">
+              <EmptyState
+                icon={hasAnyFilter ? Search : UsersIcon}
+                title={hasAnyFilter ? t('users.usersNotFound') : t('users.noUsers')}
+                description={hasAnyFilter ? t('users.tryDifferentFilter', { defaultValue: '' }) : undefined}
+                size="sm"
+              />
             </CardContent>
           </Card>
         ) : (

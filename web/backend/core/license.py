@@ -102,7 +102,6 @@ def peek_jwt_payload(token: str) -> Optional[dict]:
     except (ValueError, json.JSONDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
-    return pem_obj
 
 
 def verify_offline_jwt(

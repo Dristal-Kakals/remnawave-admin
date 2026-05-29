@@ -38,10 +38,9 @@ def configure_limiter(redis_url: str | None = None) -> None:
     if not redis_url:
         return
     try:
+        from limits.storage import storage_from_string
         limiter._storage_uri = redis_url
-        # Force re-initialization of the storage backend
-        from slowapi._rate_limit_decorator import _get_storage
-        limiter._storage = _get_storage(redis_url)
+        limiter._storage = storage_from_string(redis_url)
         logger.info("Rate limiter upgraded to Redis backend")
     except Exception as e:
         logger.warning("Failed to configure Redis rate limiter: %s", e)
