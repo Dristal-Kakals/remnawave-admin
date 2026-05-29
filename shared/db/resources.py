@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from shared.logger import logger
 from shared.metrics import SYNC_RUNS
-from shared.db._base import _db_row_to_api_format
+from shared.db._base import _db_row_to_api_format, _parse_timestamp
 
 
 class ResourcesMixin:

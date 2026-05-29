@@ -1,6 +1,7 @@
 """
 Nodes mixin — node CRUD, metrics snapshots, user-node traffic.
 """
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional

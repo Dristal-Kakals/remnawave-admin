@@ -1,6 +1,7 @@
 """
 Violations mixin — detection, whitelist, reports, batch methods.
 """
+import asyncio
 import json
 import time
 from datetime import datetime, timezone

@@ -325,8 +325,6 @@ async def main() -> None:
         pass
 
     # Cleanup services
-    if maxmind_updater:
-        maxmind_updater.stop()
     config_service.stop_auto_reload()
     if report_scheduler and report_scheduler.is_running:
         await report_scheduler.stop()
