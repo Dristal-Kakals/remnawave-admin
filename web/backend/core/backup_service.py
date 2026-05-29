@@ -72,9 +72,15 @@ async def restore_database_backup(database_url: str, filename: str) -> None:
     else:
         sql_data = filepath.read_bytes()
 
-    # Feed SQL to psql via stdin
+    # Feed SQL to psql via stdin.
+    # ON_ERROR_STOP=1 makes psql abort (and return non-zero) on the first error
+    # instead of silently skipping failed statements and reporting success.
+    # --single-transaction wraps the whole restore in one transaction, so a
+    # failure rolls everything back rather than leaving the DB half-restored
+    # (the dump starts with DROP ... statements under --clean).
     psql = await asyncio.create_subprocess_exec(
         "psql", database_url,
+        "-v", "ON_ERROR_STOP=1", "--single-transaction",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
