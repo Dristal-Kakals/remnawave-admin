@@ -1,11 +1,12 @@
 """Утилиты для отправки уведомлений в Telegram топики."""
 import asyncio
+import io
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from aiogram import Bot
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.config import get_settings
 from src.utils.formatters import format_bytes, format_datetime, format_provider_name
@@ -132,6 +133,7 @@ async def send_user_notification(
     old_user_info: dict | None = None,
     changes: list | None = None,  # Список изменений из sync_service
     event_type: str | None = None,  # Оригинальный тип события из webhook
+    subscription_url: str | None = None,  # Для QR-кода при создании
 ) -> None:
     """Отправляет уведомление о действии с пользователем в Telegram топик."""
     settings = get_settings()
@@ -282,7 +284,28 @@ async def send_user_notification(
                 lines.append(f"📝 <code>{_esc(description[:100])}</code>")
         
         text = "\n".join(lines)
-        
+
+        # Для "created" отправляем фото с QR-кодом и полным текстом в caption
+        if action == "created" and subscription_url:
+            try:
+                qr_buf = io.BytesIO()
+                qrcode.make(subscription_url, box_size=8, border=2).save(qr_buf, format='PNG')
+                qr_buf.seek(0)
+                photo_kwargs = {
+                    "chat_id": settings.notifications_chat_id,
+                    "photo": BufferedInputFile(qr_buf.read(), filename="subscription.png"),
+                    "caption": text,
+                    "parse_mode": "HTML",
+                }
+                if topic_id is not None:
+                    photo_kwargs["message_thread_id"] = topic_id
+                await bot.send_photo(**photo_kwargs)
+                logger.info("User created notification with QR sent successfully chat_id=%s", settings.notifications_chat_id)
+                return
+            except Exception as e:
+                logger.warning("Failed to send QR photo, falling back to text: %s", e)
+                # Fall through to text message
+
         # Отправляем в топик
         message_kwargs = {
             "chat_id": settings.notifications_chat_id,

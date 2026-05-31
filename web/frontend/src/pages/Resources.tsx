@@ -503,7 +503,7 @@ export default function Resources({ embedded }: { embedded?: boolean } = {}) {
                         {template.templateType}
                       </Badge>
                       <div className="text-xs text-dark-300 space-y-1">
-                        <div>Position: {template.viewPosition}</div>
+                        <div>{t('resources.position')} {template.viewPosition}</div>
                         <div>{formatDate(template.updatedAt)}</div>
                       </div>
                     </div>
@@ -621,8 +621,8 @@ export default function Resources({ embedded }: { embedded?: boolean } = {}) {
                     <div className="space-y-3">
                       <h3 className="font-medium text-white">{profile.name}</h3>
                       <div className="text-xs text-dark-300 space-y-1">
-                        <div>UUID: {profile.uuid.slice(0, 8)}...</div>
-                        <div>Position: {profile.viewPosition}</div>
+                        <div>{t('resources.uuid')} {profile.uuid.slice(0, 8)}...</div>
+                        <div>{t('resources.position')} {profile.viewPosition}</div>
                         <div>{formatDate(profile.updatedAt)}</div>
                       </div>
                     </div>
