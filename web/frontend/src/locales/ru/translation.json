@@ -150,9 +150,11 @@
       "settings": "Настройки бота"
     },
     "sections": {
-      "core": "Основное",
+      "overview": "Обзор",
+      "people": "Пользователи",
+      "infrastructure": "Инфраструктура",
       "security": "Безопасность",
-      "data": "Данные",
+      "services": "Сервисы",
       "bedolaga": "Bedolaga",
       "admin": "Управление",
       "plugins": "Расширения"

@@ -150,9 +150,11 @@
       "settings": "Bot Settings"
     },
     "sections": {
-      "core": "Core",
+      "overview": "Overview",
+      "people": "Users",
+      "infrastructure": "Infrastructure",
       "security": "Security",
-      "data": "Data",
+      "services": "Services",
       "bedolaga": "Bedolaga",
       "admin": "Management",
       "plugins": "Extensions"

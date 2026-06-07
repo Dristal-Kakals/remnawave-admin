@@ -40,6 +40,8 @@ const MailServer = lazy(() => import('./pages/MailServer'))
 const Billing = lazy(() => import('./pages/Billing'))
 const Backup = lazy(() => import('./pages/Backup'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
+const Reports = lazy(() => import('./pages/Reports'))
+const Resources = lazy(() => import('./pages/Resources'))
 const Squads = lazy(() => import('./pages/Squads'))
 const BedolagaDashboard = lazy(() => import('./pages/bedolaga/BedolagaDashboard'))
 const BedolagaCustomers = lazy(() => import('./pages/bedolaga/BedolagaCustomers'))
@@ -93,6 +95,8 @@ function ProtectedShell() {
             <Route path="/billing" element={<Billing />} />
             <Route path="/backups" element={<Backup />} />
             <Route path="/api-keys" element={<ApiKeys />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/resources" element={<Resources />} />
             <Route path="/squads" element={<Squads />} />
             <Route path="/bedolaga" element={<BedolagaDashboard />} />
             <Route path="/bedolaga/customers" element={<BedolagaCustomers />} />
