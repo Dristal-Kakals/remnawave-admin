@@ -118,8 +118,6 @@ A new anti-abuse violation has been detected.
 }
 ```
 
-See `docs/anti-abuse.md` for analyzer internals (if present in the repo).
-
 ---
 
 ## `backup.created`

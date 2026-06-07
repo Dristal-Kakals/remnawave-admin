@@ -20,11 +20,6 @@ User-facing docs for integrators and operators.
 - **Prometheus / VictoriaMetrics** — см. раздел ниже
 - **Grafana dashboards** — [`grafana/`](./grafana/) (5 дашбордов: Overview, HTTP & Performance, Users & Subscriptions, Nodes, Anti-abuse & Sync)
 
-## Other docs
-
-- [anti-abuse.md](./anti-abuse.md) - violation detection internals (if present)
-- [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) - roadmap
-
 ---
 
 # Prometheus / VictoriaMetrics integration
