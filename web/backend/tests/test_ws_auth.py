@@ -5,11 +5,12 @@ from web.backend.api.deps import extract_ws_token, WS_AUTH_SUBPROTOCOL
 
 
 class FakeWebSocket:
-    """Minimal stand-in: extract_ws_token uses only headers/query_params."""
+    """Minimal stand-in: extract_ws_token uses headers/cookies/query_params."""
 
-    def __init__(self, headers=None, query_params=None):
+    def __init__(self, headers=None, query_params=None, cookies=None):
         self.headers = headers or {}
         self.query_params = query_params or {}
+        self.cookies = cookies or {}
 
 
 class TestExtractWsToken:
@@ -76,4 +77,29 @@ class TestExtractWsToken:
     def test_no_auth_at_all(self):
         token, subprotocol = extract_ws_token(FakeWebSocket())
         assert token is None
+        assert subprotocol is None
+
+    def test_cookie_source(self):
+        """HttpOnly cookie rw_access — источник для cookie-аутентификации."""
+        ws = FakeWebSocket(cookies={"rw_access": "cookie.jwt"})
+        token, subprotocol = extract_ws_token(ws)
+        assert token == "cookie.jwt"
+        assert subprotocol is None
+
+    def test_subprotocol_wins_over_cookie(self):
+        ws = FakeWebSocket(
+            headers={"sec-websocket-protocol": "access-token, header.jwt"},
+            cookies={"rw_access": "cookie.jwt"},
+        )
+        token, subprotocol = extract_ws_token(ws)
+        assert token == "header.jwt"
+        assert subprotocol == WS_AUTH_SUBPROTOCOL
+
+    def test_cookie_wins_over_query(self):
+        ws = FakeWebSocket(
+            cookies={"rw_access": "cookie.jwt"},
+            query_params={"token": "query.jwt"},
+        )
+        token, subprotocol = extract_ws_token(ws)
+        assert token == "cookie.jwt"
         assert subprotocol is None
