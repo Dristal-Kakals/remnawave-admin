@@ -802,12 +802,12 @@ def build_quota_text(admin: Any) -> str:
     lines.append(_quota_line(admin.nodes_created, admin.max_nodes, _("quota.nodes")))
     lines.append(_quota_line(admin.hosts_created, admin.max_hosts, _("quota.hosts")))
 
+    used_gb = round((admin.traffic_used_bytes or 0) / 1073741824, 1)
     if admin.unlimited_traffic_policy == "disabled":
-        used_gb = round(admin.traffic_used_bytes / 1073741824, 1)
         limit_gb = int(admin.max_traffic_gb) if admin.max_traffic_gb is not None else 0
         pct = min(100, round(used_gb / limit_gb * 100)) if limit_gb > 0 else 0
         lines.append(f"  📶 Traffic: {used_gb}/{limit_gb} GB ({pct}%)")
     else:
-        lines.append(f"  📶 Traffic: {used_gb if used_gb else 0:.1f} GB / ∞")
+        lines.append(f"  📶 Traffic: {used_gb:.1f} GB / ∞")
 
     return "\n".join(lines)
