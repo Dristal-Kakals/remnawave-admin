@@ -29,3 +29,11 @@ node-agent/test-logs/access.log
 # Firebase service account credentials
 web/backend/secrets/
 
+# Security audit reports (содержат детали эксплуатации — не коммитить)
+docs/SECURITY_AUDIT_*.md
+
+# Playwright E2E artifacts
+web/frontend/test-results/
+
+# Agent skills lock (глобальный инструментарий, не часть проекта)
+skills-lock.json
