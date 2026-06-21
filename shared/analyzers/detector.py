@@ -348,9 +348,14 @@ class IntelligentViolationDetector:
             # нарушения — это и есть причина, по которой детектор почти не создаёт нарушений
             # через взвешенный путь (consistency ×0.3 на первом срабатывании съедает всё, а
             # чтобы consistency стал 1.0, нужны уже записанные нарушения, которых неоткуда взять).
+            # temporal НЕ считаем «сильным сигналом» для bypass, если это мобильный / один ASN /
+            # переключение сетей: CGNAT там штатно даёт пачку одновременных IP (temporal может
+            # дойти до 100 при >5 IP), но это не явный шаринг. geo/hwid/ua остаются сильными всегда.
+            _temporal_suppressed = is_network_switch or _has_mobile or (is_same_asn and asn_ratio >= 0.8)
             _strongest_signal = max(
                 geo_score.score, hwid_score.score, ua_score.score,
-                temporal_score.score, profile_score.score, asn_score.score, device_score.score,
+                (0.0 if _temporal_suppressed else temporal_score.score),
+                profile_score.score, asn_score.score, device_score.score,
             )
             if _strongest_signal >= 85.0:
                 raw_score = max(raw_score, 50.0)
