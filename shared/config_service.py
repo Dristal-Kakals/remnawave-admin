@@ -604,6 +604,16 @@ DEFAULT_CONFIG_DEFINITIONS: List[Dict[str, Any]] = [
         "sort_order": 16,
     },
     {
+        "key": "violations_hwid_scan_interval_minutes",
+        "value_type": "int",
+        "category": "violations",
+        "subcategory": "thresholds",
+        "display_name": "Интервал HWID-скана (мин)",
+        "description": "Как часто проверять оффлайн-юзеров с общими HWID на кросс-аккаунт (детектор по батчам ловит только онлайн-юзеров)",
+        "default_value": "30",
+        "sort_order": 17,
+    },
+    {
         "key": "violations_hard_block_ips",
         "value_type": "int",
         "category": "violations",

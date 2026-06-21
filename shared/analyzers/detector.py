@@ -42,7 +42,9 @@ class IntelligentViolationDetector:
         'geo': 0.20,           # География (было 0.25)
         'asn': 0.10,           # Тип провайдера (было 0.15)
         'profile': 0.15,       # Отклонение от профиля (было 0.20)
-        'device': 0.10,        # Fingerprint устройств (было 0.15)
+        'device': 0.10,        # ⚠️ ФИКТИВЕН: коллектор не пишет per-connection User-Agent
+                               # (node-agent парсит Xray access.log — там только IP+email),
+                               # поэтому device-score всегда 0. Вес сохранён на случай источника UA.
         'hwid': 0.25,          # Кросс-аккаунт HWID (сильный сигнал)
     }
     
@@ -71,7 +73,7 @@ class IntelligentViolationDetector:
         self.temporal_analyzer = TemporalAnalyzer()
         self.geo_analyzer = GeoAnalyzer(geoip_service=geoip)
         self.asn_analyzer = ASNAnalyzer(geoip_service=geoip)
-        self.profile_analyzer = UserProfileAnalyzer(db_service)
+        self.profile_analyzer = UserProfileAnalyzer(db_service, geoip_service=geoip)
         self.device_analyzer = DeviceFingerprintAnalyzer()
         self.hwid_analyzer = HwidCrossAccountAnalyzer(db_service)
         self.user_agent_analyzer = UserAgentAnalyzer()
@@ -937,8 +939,6 @@ class IntelligentViolationDetector:
             return ViolationAction.WARN
         elif score < self.THRESHOLDS['soft_block']:
             return ViolationAction.SOFT_BLOCK
-        elif score < self.THRESHOLDS['temp_block']:
-            return ViolationAction.TEMP_BLOCK
         elif score < self.THRESHOLDS['hard_block']:
             return ViolationAction.TEMP_BLOCK
         else:

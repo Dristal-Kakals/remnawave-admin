@@ -538,6 +538,26 @@ async def lifespan(app: FastAPI):
                             await asyncio.sleep(1800)
                     _bg_tasks.append(asyncio.create_task(_baseline_refresh_loop()))
 
+                    # C3: периодический HWID-скан. Детектор по батчам node-agent проверяет только
+                    # юзеров с активными подключениями СЕЙЧАС, поэтому кросс-аккаунт HWID у оффлайн-
+                    # абузеров не ловится. Этот цикл периодически ставит юзеров с общими HWID в очередь.
+                    async def _hwid_scan_loop():
+                        from web.backend.api.v2.collector import _enqueue_violation_users
+                        await asyncio.sleep(600)
+                        while True:
+                            try:
+                                if config_service.get("violations_enabled", True) and config_service.get("violations_analyzer_hwid", True):
+                                    rows = await db_service.get_shared_hwids(min_users=2, limit=1000)
+                                    uuids = {r["user_uuid"] for r in rows if r.get("user_uuid")}
+                                    if uuids:
+                                        _enqueue_violation_users(uuids)
+                                        logger.info("HWID scan: %d users sharing HWIDs enqueued for violation check", len(uuids))
+                            except Exception as exc:
+                                logger.warning("HWID scan loop failed: %s", exc)
+                            interval = int(config_service.get("violations_hwid_scan_interval_minutes", 30) or 30)
+                            await asyncio.sleep(max(5, interval) * 60)
+                    _bg_tasks.append(asyncio.create_task(_hwid_scan_loop()))
+
                 # ── Services for all modes ──
                 async def _maintenance_loop():
                     while True:

@@ -274,3 +274,19 @@ def test_mobile_carriers_list_covers_major_operators():
                 "T2 Mobile", "Scartel", "Kyivstar", "Kcell"]:
         low = org.lower()
         assert any(c in low for c in carriers), f"{org} не распознаётся как мобильный оператор"
+
+
+@pytest.mark.asyncio
+async def test_profile_geo_baseline_revived_via_geoip():
+    """Группа 3 #2: build_baseline резолвит typical_countries по known_ips через GeoIP
+    (раньше всегда пусто — история подключений не содержит country)."""
+    from shared.analyzers.profile import UserProfileAnalyzer
+    geo_map = {"77.88.8.8": meta("77.88.8.8", country_code="RU", asn_org="Yandex LLC")}
+    db = AsyncMock()
+    db.is_connected = True
+    db.get_user_baseline = AsyncMock(return_value=None)
+    db.save_user_baseline = AsyncMock()
+    pa = UserProfileAnalyzer(db, geoip_service=FakeGeoip(geo_map))
+    history = [{"ip_address": "77.88.8.8", "connected_at": datetime.utcnow() - timedelta(days=1)}]
+    bl = await pa.build_baseline("u", days=30, connection_history=history)
+    assert "RU" in bl["typical_countries"], "гео-baseline должен резолвиться через GeoIP по known_ips"

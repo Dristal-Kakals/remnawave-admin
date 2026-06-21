@@ -189,7 +189,7 @@ class TemporalAnalyzer:
                     if simultaneous_count > effective_threshold:
                         # Превышение буфера — вероятно шаринг
                         excess = simultaneous_count - effective_threshold
-                        if excess >= 3 or simultaneous_count > 5:
+                        if excess >= 3 or simultaneous_count > 10:
                             # Сильное превышение
                             score = 100.0
                             reasons.append(f"Множественные одновременные подключения с {simultaneous_count} разных IP (превышение на {excess}, порог: {effective_threshold}, устройств: {user_device_count})")
