@@ -490,6 +490,12 @@ async def lifespan(app: FastAPI):
                 # Initialize dynamic config service (DB settings cache)
                 from shared.config_service import config_service
                 await config_service.initialize()
+                # Авто-reload конфига из БД для ВСЕХ режимов. В split-режиме (APP_MODE=collector/api
+                # в разных процессах) collector иначе держит stale-кэш и не видит правок настроек
+                # из UI (их обслуживает api-процесс) до рестарта контейнера.
+                config_service.start_auto_reload(
+                    int(config_service.get("config_auto_reload_interval", 30) or 30)
+                )
 
                 # ── Services for API and full mode ──
                 if app_mode in ("api", "full"):

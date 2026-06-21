@@ -345,16 +345,28 @@ class IntelligentViolationDetector:
             # Если есть серьёзные одновременные подключения (высокий скор), устанавливаем минимум
             # Применяем только для очевидных нарушений (temporal >= 80), чтобы не создавать
             # ложных срабатываний при обычном переключении сетей
-            # Не применяем если обнаружен паттерн переключения сетей
-            if not is_network_switch:
+            #
+            # НЕ применяем жёсткий floor, если:
+            #  - это паттерн переключения сетей (WiFi <-> Mobile), ИЛИ
+            #  - есть мобильные подключения (CGNAT даёт пачку IP с одного устройства), ИЛИ
+            #  - все/почти все IP от одного провайдера (один ASN = один NAT, а не разные люди).
+            # Иначе мобильные юзеры, чей connection_type GeoIP не распознал как mobile,
+            # ловят ложное нарушение (temporal 80 → floor 70), перебивающее ASN/consistency-снижения.
+            # Реальный шаринг через одного провайдера всё равно ловится subnet-/HWID-проверками.
+            floor_suppressed = is_network_switch or _has_mobile or (is_same_asn and asn_ratio >= 0.8)
+            if not floor_suppressed:
                 if temporal_score.score >= 80.0 and temporal_score.simultaneous_connections_count > 1:
                     raw_score = max(raw_score, 70.0)
 
-            # HWID кросс-аккаунт — стопроцентное нарушение, минимум 80 (soft_block)
-            if hwid_score.score >= 100.0 and hwid_score.other_accounts_count >= 1:
+            # HWID-нарушение квалифицируется ИЛИ кросс-аккаунтом (другие аккаунты делят HWID),
+            # ИЛИ абузом мультитарифа (один telegram_id с N подписками на одном HWID — там
+            # other_accounts_count=0, поэтому отдельный флаг, иначе мультитариф не детектится).
+            _hwid_qualifies = hwid_score.other_accounts_count >= 1 or getattr(hwid_score, "per_account_abuse", False)
+            # Кросс-аккаунт / мультитариф — стопроцентное нарушение, минимум 80 (soft_block)
+            if hwid_score.score >= 100.0 and _hwid_qualifies:
                 raw_score = max(raw_score, 80.0)
-            # Промежуточные HWID скоры (65+) с подтверждёнными аккаунтами — минимум 50 (monitor)
-            elif hwid_score.score >= 65.0 and hwid_score.other_accounts_count >= 1:
+            # Промежуточные HWID скоры (65+) — минимум 50 (monitor)
+            elif hwid_score.score >= 65.0 and _hwid_qualifies:
                 raw_score = max(raw_score, 50.0)
 
             # User-Agent hard floors — явные сигналы переопределяют взвешенный скор
