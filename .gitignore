@@ -38,3 +38,6 @@ web/frontend/test-results/
 
 # Agent skills lock (глобальный инструментарий, не часть проекта)
 skills-lock.json
+
+# MCP-сервер для админки — локальный инструмент диагностики (не в репо, содержит прод-доступ)
+mcp_server/
