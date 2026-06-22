@@ -579,6 +579,8 @@ docker compose config                # Check configuration
 
 GNU Affero General Public License v3.0 with a plugin exception (§7) — see [LICENSE](LICENSE). Earlier versions (≤ 2.15.x) remain under MIT.
 
+A **commercial license** (proprietary use without AGPL obligations) is available on request. Contributions are accepted under the [CLA](CLA.md): signing is requested automatically on your first pull request.
+
 ---
 
 ## 💖 Support

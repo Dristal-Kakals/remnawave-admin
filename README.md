@@ -641,6 +641,8 @@ docker exec -it <container_name> python3 scripts/admin_cli.py list-admins
 
 GNU Affero General Public License v3.0 с дополнением для плагинов (plugin exception, §7) — см. [LICENSE](LICENSE). Прежние версии (≤ 2.15.x) остаются под MIT.
 
+**Коммерческая лицензия** (проприетарное использование без обязательств AGPL) — по запросу. Вклады принимаются по [CLA](CLA.md): подпись запрашивается автоматически при первом pull request.
+
 ---
 
 ## 💖 Поддержка
