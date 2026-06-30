@@ -485,6 +485,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       </div>
 
       {/* Project links */}
+      {role === 'superadmin' && (
+        <>
       <div className="mx-4 h-px bg-gradient-to-r from-transparent via-[rgba(var(--glow-rgb),0.12)] to-transparent" />
       <div className={cn("px-4 py-2 space-y-0.5", collapsed && "px-2")}>
         {collapsed ? (
@@ -561,6 +563,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </>
         )}
       </div>
+        </>
+      )}
 
       {/* User info */}
       <div className="mx-4 h-px bg-gradient-to-r from-transparent via-[rgba(var(--glow-rgb),0.12)] to-transparent" />
