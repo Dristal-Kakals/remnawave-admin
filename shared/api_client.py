@@ -382,8 +382,9 @@ class RemnawaveApiClient(BaseHttpClient):
         await cache.invalidate(CacheKeys.STATS)
         return result
 
-    async def restart_node(self, node_uuid: str) -> dict:
-        result = await self._post(f"/api/nodes/{node_uuid}/actions/restart")
+    async def restart_node(self, node_uuid: str, force_restart: bool = True) -> dict:
+        # 2.8.0: эндпоинт перезапуска требует body с обязательным forceRestart.
+        result = await self._post(f"/api/nodes/{node_uuid}/actions/restart", json={"forceRestart": force_restart})
         await cache.invalidate(CacheKeys.node(node_uuid))
         await cache.invalidate(CacheKeys.NODES)
         return result
@@ -461,10 +462,8 @@ class RemnawaveApiClient(BaseHttpClient):
 
     async def restart_all_nodes(self, force_restart: bool = False) -> dict:
         """Перезапускает все ноды."""
-        payload: dict[str, object] = {}
-        if force_restart:
-            payload["forceRestart"] = True
-        result = await self._post("/api/nodes/actions/restart-all", json=payload)
+        # 2.8.0: restart-all требует body с обязательным forceRestart.
+        result = await self._post("/api/nodes/actions/restart-all", json={"forceRestart": force_restart})
         await cache.invalidate(CacheKeys.NODES)
         await cache.invalidate_pattern("node:")
         return result

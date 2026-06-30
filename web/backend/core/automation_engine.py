@@ -947,7 +947,7 @@ class AutomationEngine:
             client = _get_client()
             resp = await client.post(
                 f"/api/nodes/{target_id}/actions/restart",
-                json={},
+                json={"forceRestart": True},
             )
             resp.raise_for_status()
             return {"action": "restart_node", "node_uuid": target_id, "status": resp.status_code}
@@ -962,7 +962,7 @@ class AutomationEngine:
             if not uuid or not node.get("is_connected", False):
                 continue
             try:
-                resp = await client.post(f"/api/nodes/{uuid}/actions/restart", json={})
+                resp = await client.post(f"/api/nodes/{uuid}/actions/restart", json={"forceRestart": True})
                 if resp.status_code < 400:
                     restarted.append(uuid)
                 else:

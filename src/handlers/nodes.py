@@ -1698,7 +1698,7 @@ async def cb_node_actions(callback: CallbackQuery, admin: BotAdmin) -> None:
                 ])
                 await _edit_text_safe(callback.message, f"⚠️ <b>{_('node.restart_confirm', default='Перезапустить ноду?')}</b>\n\n{_('node.restart_warning', default='Все активные соединения на ноде будут разорваны.')}", reply_markup=keyboard, parse_mode="HTML")
                 return
-            await internal_api_client.restart_node(node_uuid)
+            await internal_api_client.restart_node(node_uuid, force_restart=True)
         elif action == "reset":
             if "confirm" not in callback.data:
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
