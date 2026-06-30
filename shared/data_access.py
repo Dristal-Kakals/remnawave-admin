@@ -263,6 +263,45 @@ async def get_squads_for_admin(
     return [], "internal"
 
 
+async def _scoped_squads_by_type(
+    account_id: Optional[int],
+    role_id: Optional[int],
+    role: Optional[str],
+    fetch_all,
+) -> List[Dict[str, Any]]:
+    """Squads of a single type (internal OR external), filtered by the admin's
+    squad:view scope. Returns the full list when the admin has no scope
+    restriction (superadmin/legacy), an empty list when the admin has no
+    squad access."""
+    from shared.rbac import get_scope
+
+    squad_scope = await get_scope(account_id, role_id, role, "squad", "view")
+    if squad_scope is None:
+        return await fetch_all()
+    if not squad_scope:
+        return []
+    all_squads = await fetch_all()
+    return [s for s in all_squads if str(s.get("uuid", "")).lower() in squad_scope]
+
+
+async def get_internal_squads_for_admin(
+    account_id: Optional[int],
+    role_id: Optional[int],
+    role: Optional[str],
+) -> List[Dict[str, Any]]:
+    """Internal squads visible to the admin (scope-filtered)."""
+    return await _scoped_squads_by_type(account_id, role_id, role, get_all_internal_squads)
+
+
+async def get_external_squads_for_admin(
+    account_id: Optional[int],
+    role_id: Optional[int],
+    role: Optional[str],
+) -> List[Dict[str, Any]]:
+    """External squads visible to the admin (scope-filtered)."""
+    return await _scoped_squads_by_type(account_id, role_id, role, get_all_external_squads)
+
+
 # ==================== Host Access ====================
 
 async def get_all_hosts() -> List[Dict[str, Any]]:
