@@ -950,7 +950,11 @@
       "address": "Адрес",
       "addressPlaceholder": "IP или домен",
       "port": "Порт",
-      "portPlaceholder": "Порт"
+      "portPlaceholder": "Порт",
+      "note": "Заметка",
+      "notePlaceholder": "Внутренняя заметка (до 255 символов)",
+      "proxyUrl": "SOCKS5-прокси",
+      "nodeConsumptionMultiplier": "Множитель потребления ноды"
     },
     "createNode": {
       "title": "Добавление ноды",

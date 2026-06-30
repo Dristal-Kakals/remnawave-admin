@@ -98,6 +98,9 @@ interface Node {
   users_online: number
   xray_version: string | null
   message: string | null
+  note?: string | null
+  proxy_url?: string | null
+  node_consumption_multiplier?: number | null
   traffic_total_bytes: number
   traffic_today_bytes: number
   created_at: string
@@ -114,6 +117,9 @@ interface NodeEditFormData {
   name: string
   address: string
   port: string
+  note: string
+  proxy_url: string
+  node_consumption_multiplier: string
 }
 
 // API functions
@@ -139,18 +145,19 @@ function NodeEditModal({
   error: string
 }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState<NodeEditFormData>({
+  const initForm = (): NodeEditFormData => ({
     name: node.name,
     address: node.address,
     port: String(node.port),
+    note: node.note || '',
+    proxy_url: node.proxy_url || '',
+    node_consumption_multiplier: node.node_consumption_multiplier != null ? String(node.node_consumption_multiplier) : '',
   })
+  const [form, setForm] = useState<NodeEditFormData>(initForm)
 
   useEffect(() => {
-    setForm({
-      name: node.name,
-      address: node.address,
-      port: String(node.port),
-    })
+    setForm(initForm())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node])
 
   const handleSubmit = () => {
@@ -159,6 +166,14 @@ function NodeEditModal({
     if (form.address !== node.address) updateData.address = form.address
     const newPort = parseInt(form.port, 10)
     if (!isNaN(newPort) && newPort !== node.port) updateData.port = newPort
+    if (form.note !== (node.note || '')) updateData.note = form.note || null
+    if (form.proxy_url !== (node.proxy_url || '')) updateData.proxy_url = form.proxy_url || null
+    const curMult = node.node_consumption_multiplier != null ? String(node.node_consumption_multiplier) : ''
+    if (form.node_consumption_multiplier !== curMult) {
+      const m = parseFloat(form.node_consumption_multiplier)
+      if (form.node_consumption_multiplier === '') updateData.node_consumption_multiplier = null
+      else if (!isNaN(m)) updateData.node_consumption_multiplier = m
+    }
     if (Object.keys(updateData).length === 0) {
       onOpenChange(false)
       return
@@ -212,6 +227,36 @@ function NodeEditModal({
               placeholder={t('nodes.editNode.port')}
             />
           </div>
+          <div className="space-y-2">
+            <Label>{t('nodes.editNode.note')}</Label>
+            <Input
+              type="text"
+              maxLength={255}
+              value={form.note}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+              placeholder={t('nodes.editNode.notePlaceholder')}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t('nodes.editNode.proxyUrl')}</Label>
+            <Input
+              type="text"
+              value={form.proxy_url}
+              onChange={(e) => setForm({ ...form, proxy_url: e.target.value })}
+              placeholder="socks5://user:pass@host:port"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t('nodes.editNode.nodeConsumptionMultiplier')}</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min={0}
+              value={form.node_consumption_multiplier}
+              onChange={(e) => setForm({ ...form, node_consumption_multiplier: e.target.value })}
+              placeholder="1.0"
+            />
+          </div>
         </div>
 
         <DialogFooter>
@@ -260,6 +305,9 @@ function NodeCreateModal({
     name: '',
     address: '',
     port: '62050',
+    note: '',
+    proxy_url: '',
+    node_consumption_multiplier: '',
   })
   const [selectedProfileUuid, setSelectedProfileUuid] = useState('')
   const [selectedInbounds, setSelectedInbounds] = useState<string[]>([])
@@ -284,7 +332,7 @@ function NodeCreateModal({
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {
-      setForm({ name: '', address: '', port: '62050' })
+      setForm({ name: '', address: '', port: '62050', note: '', proxy_url: '', node_consumption_multiplier: '' })
       setSelectedProfileUuid('')
       setSelectedInbounds([])
     }

@@ -332,6 +332,9 @@ class RemnawaveApiClient(BaseHttpClient):
         notify_percent: int | None = None,
         traffic_reset_day: int | None = None,
         consumption_multiplier: float | None = None,
+        node_consumption_multiplier: float | None = None,
+        note: str | None = None,
+        proxy_url: str | None = None,
         tags: list[str] | None = None,
     ) -> dict:
         """Создание новой ноды."""
@@ -359,6 +362,12 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["trafficResetDay"] = traffic_reset_day
         if consumption_multiplier is not None:
             payload["consumptionMultiplier"] = consumption_multiplier
+        if node_consumption_multiplier is not None:
+            payload["nodeConsumptionMultiplier"] = node_consumption_multiplier
+        if note is not None:
+            payload["note"] = note
+        if proxy_url is not None:
+            payload["proxyUrl"] = proxy_url
         if tags:
             payload["tags"] = tags
         result = await self._post("/api/nodes", json=payload)
@@ -411,6 +420,9 @@ class RemnawaveApiClient(BaseHttpClient):
         notify_percent: int | None = None,
         traffic_reset_day: int | None = None,
         consumption_multiplier: float | None = None,
+        node_consumption_multiplier: float | None = None,
+        note: str | None = None,
+        proxy_url: str | None = None,
         tags: list[str] | None = None,
     ) -> dict:
         """Обновление ноды."""
@@ -440,6 +452,12 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["trafficResetDay"] = traffic_reset_day
         if consumption_multiplier is not None:
             payload["consumptionMultiplier"] = consumption_multiplier
+        if node_consumption_multiplier is not None:
+            payload["nodeConsumptionMultiplier"] = node_consumption_multiplier
+        if note is not None:
+            payload["note"] = note
+        if proxy_url is not None:
+            payload["proxyUrl"] = proxy_url
         if tags is not None:
             payload["tags"] = tags
         result = await self._patch("/api/nodes", json=payload)

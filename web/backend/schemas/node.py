@@ -43,6 +43,10 @@ class NodeListItem(NodeBase):
     has_agent_token: bool = False
     agent_v2_connected: bool = False
     agent_v2_last_ping: Optional[datetime] = None
+    # 2.8.0: заметка, SOCKS5-прокси, отдельный множитель потребления ноды
+    note: Optional[str] = None
+    proxy_url: Optional[str] = None
+    node_consumption_multiplier: Optional[float] = None
     # Access-policy scope for the current admin:
     # None = no restriction, list = allowed actions (e.g. ["view","edit"])
     allowed_actions: Optional[List[str]] = None
@@ -63,6 +67,9 @@ class NodeCreate(BaseModel):
     port: int = 443
     config_profile_uuid: str
     active_inbounds: List[str]
+    note: Optional[str] = None
+    proxy_url: Optional[str] = None
+    node_consumption_multiplier: Optional[float] = None
 
 
 class NodeUpdate(BaseModel):
@@ -72,6 +79,9 @@ class NodeUpdate(BaseModel):
     address: Optional[str] = None
     port: Optional[int] = None
     is_disabled: Optional[bool] = None
+    note: Optional[str] = None
+    proxy_url: Optional[str] = None
+    node_consumption_multiplier: Optional[float] = None
 
 
 class NodeStats(BaseModel):

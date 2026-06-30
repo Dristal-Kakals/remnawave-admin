@@ -950,7 +950,11 @@
       "address": "Address",
       "addressPlaceholder": "IP or domain",
       "port": "Port",
-      "portPlaceholder": "Port"
+      "portPlaceholder": "Port",
+      "note": "Note",
+      "notePlaceholder": "Internal note (up to 255 chars)",
+      "proxyUrl": "SOCKS5 proxy",
+      "nodeConsumptionMultiplier": "Node consumption multiplier"
     },
     "createNode": {
       "title": "Add node",
