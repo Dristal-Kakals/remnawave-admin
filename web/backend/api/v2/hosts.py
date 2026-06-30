@@ -2,7 +2,8 @@
 import json
 import logging
 from fastapi import APIRouter, Depends, Request
-from typing import List
+from pydantic import BaseModel
+from typing import List, Optional
 
 from web.backend.api.deps import get_current_admin, get_api_client, AdminUser, require_permission, require_quota, get_client_ip
 from web.backend.core.errors import api_error, E
@@ -247,6 +248,120 @@ async def create_host(
     )
 
     return HostDetail(**_map_host_detail(h))
+
+
+# ─────────────── Массовые операции с хостами (2.8.0) ───────────────
+# ВАЖНО: маршруты /bulk/* объявлены ДО параметризованных /{host_uuid}/*,
+# иначе FastAPI поймает "bulk" как host_uuid.
+
+class BulkHostUuids(BaseModel):
+    uuids: List[str]
+
+
+class BulkHostUpdate(BaseModel):
+    uuids: List[str]
+    port: Optional[int] = None
+    security_layer: Optional[str] = None
+    tags: Optional[List[str]] = None
+    is_disabled: Optional[bool] = None
+    inbound: Optional[dict] = None
+
+
+async def _accessible_host_uuids(admin: AdminUser, uuids: List[str], action: str = "edit") -> List[str]:
+    """Оставляет только хосты, к которым у админа есть доступ (с учётом scope)."""
+    allowed: List[str] = []
+    for u in uuids:
+        if await check_access(admin, "host", u, action):
+            allowed.append(u)
+    return allowed
+
+
+@router.post("/bulk/enable")
+async def bulk_enable_hosts_ep(
+    data: BulkHostUuids,
+    request: Request,
+    admin: AdminUser = Depends(require_permission("hosts", "edit")),
+    api_client=Depends(get_api_client),
+):
+    """Массово включить хосты."""
+    uuids = await _accessible_host_uuids(admin, data.uuids)
+    if uuids:
+        await api_client.bulk_enable_hosts(uuids)
+    await write_audit_log(
+        admin_id=admin.account_id, admin_username=admin.username,
+        action="host.bulk_enable", resource="hosts", resource_id="",
+        details=json.dumps({"count": len(uuids)}), ip_address=get_client_ip(request),
+    )
+    return {"status": "ok", "count": len(uuids)}
+
+
+@router.post("/bulk/disable")
+async def bulk_disable_hosts_ep(
+    data: BulkHostUuids,
+    request: Request,
+    admin: AdminUser = Depends(require_permission("hosts", "edit")),
+    api_client=Depends(get_api_client),
+):
+    """Массово отключить хосты."""
+    uuids = await _accessible_host_uuids(admin, data.uuids)
+    if uuids:
+        await api_client.bulk_disable_hosts(uuids)
+    await write_audit_log(
+        admin_id=admin.account_id, admin_username=admin.username,
+        action="host.bulk_disable", resource="hosts", resource_id="",
+        details=json.dumps({"count": len(uuids)}), ip_address=get_client_ip(request),
+    )
+    return {"status": "ok", "count": len(uuids)}
+
+
+@router.post("/bulk/delete")
+async def bulk_delete_hosts_ep(
+    data: BulkHostUuids,
+    request: Request,
+    admin: AdminUser = Depends(require_permission("hosts", "delete")),
+    api_client=Depends(get_api_client),
+):
+    """Массово удалить хосты."""
+    uuids = await _accessible_host_uuids(admin, data.uuids, action="delete")
+    if uuids:
+        await api_client.bulk_delete_hosts(uuids)
+    await write_audit_log(
+        admin_id=admin.account_id, admin_username=admin.username,
+        action="host.bulk_delete", resource="hosts", resource_id="",
+        details=json.dumps({"count": len(uuids)}), ip_address=get_client_ip(request),
+    )
+    return {"status": "ok", "count": len(uuids)}
+
+
+@router.patch("/bulk")
+async def bulk_update_hosts_ep(
+    data: BulkHostUpdate,
+    request: Request,
+    admin: AdminUser = Depends(require_permission("hosts", "edit")),
+    api_client=Depends(get_api_client),
+):
+    """Массово обновить общие поля хостов (2.8.0: PATCH /hosts/bulk/update)."""
+    uuids = await _accessible_host_uuids(admin, data.uuids)
+    fields: dict = {}
+    if data.port is not None:
+        fields["port"] = data.port
+    if data.security_layer is not None:
+        fields["securityLayer"] = data.security_layer
+    if data.tags is not None:
+        fields["tags"] = data.tags
+    if data.is_disabled is not None:
+        fields["isDisabled"] = data.is_disabled
+    if data.inbound is not None:
+        fields["inbound"] = data.inbound
+    if uuids and fields:
+        await api_client.bulk_update_hosts(uuids, **fields)
+    await write_audit_log(
+        admin_id=admin.account_id, admin_username=admin.username,
+        action="host.bulk_update", resource="hosts", resource_id="",
+        details=json.dumps({"count": len(uuids), "fields": list(fields.keys())}),
+        ip_address=get_client_ip(request),
+    )
+    return {"status": "ok", "count": len(uuids)}
 
 
 @router.patch("/{host_uuid}", response_model=HostDetail)

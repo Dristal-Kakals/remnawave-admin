@@ -56,13 +56,15 @@ export interface HostsTableProps {
   hosts: HostRow[]
   canEdit: boolean
   canDelete: boolean
+  selected?: Set<string>
+  onToggleSelect?: (uuid: string) => void
   onEdit: (h: HostRow) => void
   onEnable: (h: HostRow) => void
   onDisable: (h: HostRow) => void
   onDelete: (h: HostRow) => void
 }
 
-export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisable, onDelete }: HostsTableProps) {
+export function HostsTable({ hosts, canEdit, canDelete, selected, onToggleSelect, onEdit, onEnable, onDisable, onDelete }: HostsTableProps) {
   const { t } = useTranslation()
 
   const secLabel = (s: string): string =>
@@ -98,6 +100,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
     <Table>
       <TableHeader>
         <TableRow>
+          {onToggleSelect && <SortableTh label="" className="w-px" />}
           <SortableTh label={t('hosts.table.remark', { defaultValue: 'Хост' })} sortKey="remark" currentSort={sort} onSort={toggleSort} />
           <SortableTh label={t('hosts.table.address', { defaultValue: 'Адрес' })} sortKey="address" currentSort={sort} onSort={toggleSort} className="hidden md:table-cell" />
           <SortableTh label={t('hosts.table.security', { defaultValue: 'Security' })} sortKey="security" currentSort={sort} onSort={toggleSort}
@@ -120,6 +123,16 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
           const scopeDelete = canDelete && (host.allowed_actions == null || host.allowed_actions.includes('delete'))
           return (
             <TableRow key={host.uuid}>
+              {onToggleSelect && (
+                <TableCell className="w-px">
+                  <input
+                    type="checkbox"
+                    className="accent-primary-500 w-4 h-4 cursor-pointer"
+                    checked={selected?.has(host.uuid) || false}
+                    onChange={() => onToggleSelect(host.uuid)}
+                  />
+                </TableCell>
+              )}
               <TableCell>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="font-medium text-white truncate max-w-[180px]">{host.remark || '—'}</span>

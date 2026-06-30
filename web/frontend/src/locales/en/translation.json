@@ -1414,6 +1414,22 @@
       "pinnedPeerCertPlaceholder": "SHA-256 certificate fingerprint",
       "verifyPeerCert": "Verify certificate by name"
     },
+    "bulk": {
+      "selectAll": "Select all",
+      "selected": "Selected: {{count}}",
+      "enable": "Enable",
+      "disable": "Disable",
+      "edit": "Edit",
+      "delete": "Delete",
+      "clear": "Clear",
+      "confirmDelete": "Delete selected hosts ({{count}})?",
+      "done": "Done",
+      "editTitle": "Bulk edit ({{count}})",
+      "editHint": "Check the fields to apply to all selected hosts.",
+      "tags": "Tags",
+      "cancel": "Cancel",
+      "apply": "Apply"
+    },
     "detail": {
       "nodes": "Nodes"
     },

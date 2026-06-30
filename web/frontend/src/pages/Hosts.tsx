@@ -916,6 +916,66 @@ function HostSkeleton() {
   )
 }
 
+function BulkEditHostsModal({ open, count, onClose, onApply, isPending }: {
+  open: boolean
+  count: number
+  onClose: () => void
+  onApply: (data: Record<string, unknown>) => void
+  isPending: boolean
+}) {
+  const { t } = useTranslation()
+  const [setPort, setSetPort] = useState(false)
+  const [portVal, setPortVal] = useState('')
+  const [setTags, setSetTags] = useState(false)
+  const [tagsVal, setTagsVal] = useState('')
+
+  useEffect(() => {
+    if (!open) { setSetPort(false); setPortVal(''); setSetTags(false); setTagsVal('') }
+  }, [open])
+
+  const apply = () => {
+    const data: Record<string, unknown> = {}
+    if (setPort) { const p = parseInt(portVal, 10); if (!isNaN(p)) data.port = p }
+    if (setTags) data.tags = tagsVal.split(',').map((s) => s.trim()).filter(Boolean)
+    onApply(data)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('hosts.bulk.editTitle', { count })}</DialogTitle>
+          <DialogDescription>{t('hosts.bulk.editHint')}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-dark-100 cursor-pointer select-none">
+              <input type="checkbox" className="accent-primary-500" checked={setPort} onChange={(e) => setSetPort(e.target.checked)} />
+              {t('hosts.form.port')}
+            </label>
+            {setPort && (
+              <Input type="number" min={1} max={65535} value={portVal} onChange={(e) => setPortVal(e.target.value)} placeholder="443" />
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-dark-100 cursor-pointer select-none">
+              <input type="checkbox" className="accent-primary-500" checked={setTags} onChange={(e) => setSetTags(e.target.checked)} />
+              {t('hosts.bulk.tags')}
+            </label>
+            {setTags && (
+              <Input type="text" value={tagsVal} onChange={(e) => setTagsVal(e.target.value)} placeholder="TAG1, TAG2" />
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={isPending}>{t('hosts.bulk.cancel')}</Button>
+          <Button onClick={apply} disabled={isPending || (!setPort && !setTags)}>{t('hosts.bulk.apply')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function Hosts() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -928,6 +988,17 @@ export default function Hosts() {
   const [createError, setCreateError] = useState('')
   const [deleteConfirmUuid, setDeleteConfirmUuid] = useState<string | null>(null)
   const [viewMode, setViewMode] = useViewMode('hosts')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkEditOpen, setBulkEditOpen] = useState(false)
+
+  const toggleSelect = (uuid: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(uuid)) next.delete(uuid)
+      else next.add(uuid)
+      return next
+    })
+  const clearSelected = () => setSelected(new Set())
 
   // Fetch hosts
   const { data: hosts = [], isLoading, refetch } = useQuery({
@@ -998,6 +1069,24 @@ export default function Hosts() {
     onError: (err: Error & { response?: { data?: { detail?: string } } }) => {
       setCreateError(err.response?.data?.detail || err.message || t('hosts.toast.createError'))
       toast.error(err.response?.data?.detail || err.message || t('hosts.toast.createError'))
+    },
+  })
+
+  const bulkAction = useMutation({
+    mutationFn: async ({ action, data }: { action: 'enable' | 'disable' | 'delete' | 'update'; data?: Record<string, unknown> }) => {
+      const uuids = Array.from(selected)
+      if (action === 'update') return client.patch('/hosts/bulk', { uuids, ...(data || {}) })
+      return client.post(`/hosts/bulk/${action}`, { uuids })
+    },
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['hosts'] })
+      if (vars.action === 'delete') queryClient.invalidateQueries({ queryKey: ['admins'] })
+      clearSelected()
+      setBulkEditOpen(false)
+      toast.success(t('hosts.bulk.done'))
+    },
+    onError: (err: Error & { response?: { data?: { detail?: string } } }) => {
+      toast.error(err.response?.data?.detail || err.message || t('hosts.toast.error'))
     },
   })
 
@@ -1073,10 +1162,35 @@ export default function Hosts() {
         </Card>
       </div>
 
-      {/* Toolbar: view toggle */}
+      {/* Toolbar: select-all + view toggle */}
       {!isLoading && hosts.length > 0 && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between gap-2">
+          {canEdit ? (
+            <label className="flex items-center gap-2 text-sm text-dark-200 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="accent-primary-500"
+                checked={selected.size > 0 && selected.size === hosts.length}
+                ref={(el) => { if (el) el.indeterminate = selected.size > 0 && selected.size < hosts.length }}
+                onChange={(e) => setSelected(e.target.checked ? new Set(hosts.map((h) => h.uuid)) : new Set())}
+              />
+              {t('hosts.bulk.selectAll')}
+            </label>
+          ) : <div />}
           <ViewToggle mode={viewMode} onChange={setViewMode} />
+        </div>
+      )}
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-primary-500/30 bg-[var(--glass-bg)] backdrop-blur px-3 py-2 shadow-lg">
+          <span className="text-sm text-white font-medium">{t('hosts.bulk.selected', { count: selected.size })}</span>
+          <div className="flex-1" />
+          {canEdit && <Button size="sm" variant="secondary" onClick={() => bulkAction.mutate({ action: 'enable' })} disabled={bulkAction.isPending}>{t('hosts.bulk.enable')}</Button>}
+          {canEdit && <Button size="sm" variant="secondary" onClick={() => bulkAction.mutate({ action: 'disable' })} disabled={bulkAction.isPending}>{t('hosts.bulk.disable')}</Button>}
+          {canEdit && <Button size="sm" variant="secondary" onClick={() => setBulkEditOpen(true)} disabled={bulkAction.isPending}>{t('hosts.bulk.edit')}</Button>}
+          {canDelete && <Button size="sm" variant="destructive" onClick={() => { if (window.confirm(t('hosts.bulk.confirmDelete', { count: selected.size }))) bulkAction.mutate({ action: 'delete' }) }} disabled={bulkAction.isPending}>{t('hosts.bulk.delete')}</Button>}
+          <Button size="sm" variant="ghost" onClick={clearSelected}>{t('hosts.bulk.clear')}</Button>
         </div>
       )}
 
@@ -1086,6 +1200,8 @@ export default function Hosts() {
           hosts={hosts}
           canEdit={canEdit}
           canDelete={canDelete}
+          selected={selected}
+          onToggleSelect={toggleSelect}
           onEdit={(h) => { setEditingHost(hosts.find((x) => x.uuid === h.uuid) ?? null); setEditError('') }}
           onEnable={(h) => enableHost.mutate(h.uuid)}
           onDisable={(h) => disableHost.mutate(h.uuid)}
@@ -1111,7 +1227,15 @@ export default function Hosts() {
             </Card>
           ) : (
             hosts.map((host, i) => (
-              <div key={host.uuid} className="animate-fade-in-up" style={{ animationDelay: `${0.1 + i * 0.06}s` }}>
+              <div key={host.uuid} className="relative animate-fade-in-up" style={{ animationDelay: `${0.1 + i * 0.06}s` }}>
+                {canEdit && (
+                  <input
+                    type="checkbox"
+                    className="absolute top-3 left-3 z-10 accent-primary-500 w-4 h-4 cursor-pointer"
+                    checked={selected.has(host.uuid)}
+                    onChange={() => toggleSelect(host.uuid)}
+                  />
+                )}
                 {viewMode === 'compact' ? (
                   <HostCompactCard
                     host={host}
@@ -1159,6 +1283,15 @@ export default function Hosts() {
           error={createError}
         />
       )}
+
+      {/* Bulk edit modal */}
+      <BulkEditHostsModal
+        open={bulkEditOpen}
+        count={selected.size}
+        onClose={() => setBulkEditOpen(false)}
+        onApply={(data) => bulkAction.mutate({ action: 'update', data })}
+        isPending={bulkAction.isPending}
+      />
 
       {/* Confirm delete dialog */}
       <ConfirmDialog
