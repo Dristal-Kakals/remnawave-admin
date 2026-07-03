@@ -35,6 +35,10 @@
     "previousPage": "Предыдущая страница",
     "nextPage": "Следующая страница",
     "remove": "Удалить",
+    "show": "Показать",
+    "hide": "Скрыть",
+    "min": "Мин",
+    "max": "Макс",
     "toggleSort": "Изменить направление сортировки",
     "dragToReorder": "Перетащите для изменения порядка",
     "loading": "Загрузка...",
@@ -950,7 +954,11 @@
       "address": "Адрес",
       "addressPlaceholder": "IP или домен",
       "port": "Порт",
-      "portPlaceholder": "Порт"
+      "portPlaceholder": "Порт",
+      "note": "Заметка",
+      "notePlaceholder": "Внутренняя заметка (до 255 символов)",
+      "proxyUrl": "SOCKS5-прокси",
+      "nodeConsumptionMultiplier": "Множитель потребления ноды"
     },
     "createNode": {
       "title": "Добавление ноды",
@@ -1403,7 +1411,29 @@
       "hostPlaceholder": "Заголовок хоста",
       "pathPlaceholder": "/путь",
       "alpnPlaceholder": "h2,http/1.1",
-      "fingerprintPlaceholder": "chrome, firefox, safari..."
+      "fingerprintPlaceholder": "chrome, firefox, safari...",
+      "mihomoIpVersion": "Версия IP (Mihomo)",
+      "mihomoIpVersionDefault": "По умолчанию",
+      "pinnedPeerCert": "Пиннинг сертификата (SHA-256)",
+      "pinnedPeerCertPlaceholder": "SHA-256 отпечаток сертификата",
+      "verifyPeerCert": "Проверять сертификат по имени"
+    },
+    "bulk": {
+      "selectAll": "Выбрать все",
+      "selectOne": "Выбрать {{name}}",
+      "selected": "Выбрано: {{count}}",
+      "enable": "Включить",
+      "disable": "Выключить",
+      "edit": "Изменить",
+      "delete": "Удалить",
+      "clear": "Снять выбор",
+      "confirmDelete": "Удалить выбранные хосты ({{count}})?",
+      "done": "Готово",
+      "editTitle": "Массовое изменение ({{count}})",
+      "editHint": "Отметьте поля, которые нужно изменить у всех выбранных хостов.",
+      "tags": "Теги",
+      "cancel": "Отмена",
+      "apply": "Применить"
     },
     "detail": {
       "nodes": "Ноды"

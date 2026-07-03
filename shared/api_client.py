@@ -332,6 +332,9 @@ class RemnawaveApiClient(BaseHttpClient):
         notify_percent: int | None = None,
         traffic_reset_day: int | None = None,
         consumption_multiplier: float | None = None,
+        node_consumption_multiplier: float | None = None,
+        note: str | None = None,
+        proxy_url: str | None = None,
         tags: list[str] | None = None,
     ) -> dict:
         """Создание новой ноды."""
@@ -359,6 +362,12 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["trafficResetDay"] = traffic_reset_day
         if consumption_multiplier is not None:
             payload["consumptionMultiplier"] = consumption_multiplier
+        if node_consumption_multiplier is not None:
+            payload["nodeConsumptionMultiplier"] = node_consumption_multiplier
+        if note is not None:
+            payload["note"] = note
+        if proxy_url is not None:
+            payload["proxyUrl"] = proxy_url
         if tags:
             payload["tags"] = tags
         result = await self._post("/api/nodes", json=payload)
@@ -382,8 +391,9 @@ class RemnawaveApiClient(BaseHttpClient):
         await cache.invalidate(CacheKeys.STATS)
         return result
 
-    async def restart_node(self, node_uuid: str) -> dict:
-        result = await self._post(f"/api/nodes/{node_uuid}/actions/restart")
+    async def restart_node(self, node_uuid: str, force_restart: bool = True) -> dict:
+        # 2.8.0: эндпоинт перезапуска требует body с обязательным forceRestart.
+        result = await self._post(f"/api/nodes/{node_uuid}/actions/restart", json={"forceRestart": force_restart})
         await cache.invalidate(CacheKeys.node(node_uuid))
         await cache.invalidate(CacheKeys.NODES)
         return result
@@ -410,6 +420,9 @@ class RemnawaveApiClient(BaseHttpClient):
         notify_percent: int | None = None,
         traffic_reset_day: int | None = None,
         consumption_multiplier: float | None = None,
+        node_consumption_multiplier: float | None = None,
+        note: str | None = None,
+        proxy_url: str | None = None,
         tags: list[str] | None = None,
     ) -> dict:
         """Обновление ноды."""
@@ -439,6 +452,12 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["trafficResetDay"] = traffic_reset_day
         if consumption_multiplier is not None:
             payload["consumptionMultiplier"] = consumption_multiplier
+        if node_consumption_multiplier is not None:
+            payload["nodeConsumptionMultiplier"] = node_consumption_multiplier
+        if note is not None:
+            payload["note"] = note
+        if proxy_url is not None:
+            payload["proxyUrl"] = proxy_url
         if tags is not None:
             payload["tags"] = tags
         result = await self._patch("/api/nodes", json=payload)
@@ -461,10 +480,8 @@ class RemnawaveApiClient(BaseHttpClient):
 
     async def restart_all_nodes(self, force_restart: bool = False) -> dict:
         """Перезапускает все ноды."""
-        payload: dict[str, object] = {}
-        if force_restart:
-            payload["forceRestart"] = True
-        result = await self._post("/api/nodes/actions/restart-all", json=payload)
+        # 2.8.0: restart-all требует body с обязательным forceRestart.
+        result = await self._post("/api/nodes/actions/restart-all", json={"forceRestart": force_restart})
         await cache.invalidate(CacheKeys.NODES)
         await cache.invalidate_pattern("node:")
         return result
@@ -550,7 +567,8 @@ class RemnawaveApiClient(BaseHttpClient):
         port: int,
         config_profile_uuid: str,
         config_profile_inbound_uuid: str,
-        tag: str | None = None,
+        tags: list[str] | None = None,
+        mihomo_ip_version: str | None = None,
         path: str | None = None,
         sni: str | None = None,
         host: str | None = None,
@@ -565,7 +583,8 @@ class RemnawaveApiClient(BaseHttpClient):
         is_hidden: bool = False,
         override_sni_from_address: bool = False,
         keep_sni_blank: bool = False,
-        allow_insecure: bool = False,
+        pinned_peer_cert_sha256: str | None = None,
+        verify_peer_cert_by_name: bool = False,
         vless_route_id: int | None = None,
         shuffle_host: bool = False,
         mihomo_x25519: bool = False,
@@ -583,8 +602,10 @@ class RemnawaveApiClient(BaseHttpClient):
                 "configProfileInboundUuid": config_profile_inbound_uuid,
             },
         }
-        if tag is not None:
-            payload["tag"] = tag
+        if tags is not None:
+            payload["tags"] = tags
+        if mihomo_ip_version is not None:
+            payload["mihomoIpVersion"] = mihomo_ip_version
         if path is not None:
             payload["path"] = path
         if sni is not None:
@@ -613,8 +634,10 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["overrideSniFromAddress"] = override_sni_from_address
         if keep_sni_blank:
             payload["keepSniBlank"] = keep_sni_blank
-        if allow_insecure:
-            payload["allowInsecure"] = allow_insecure
+        if pinned_peer_cert_sha256 is not None:
+            payload["pinnedPeerCertSha256"] = pinned_peer_cert_sha256
+        if verify_peer_cert_by_name:
+            payload["verifyPeerCertByName"] = verify_peer_cert_by_name
         if vless_route_id is not None:
             payload["vlessRouteId"] = vless_route_id
         if shuffle_host:
@@ -645,7 +668,8 @@ class RemnawaveApiClient(BaseHttpClient):
         remark: str | None = None,
         address: str | None = None,
         port: int | None = None,
-        tag: str | None = None,
+        tags: list[str] | None = None,
+        mihomo_ip_version: str | None = None,
         inbound: dict | None = None,
         path: str | None = None,
         sni: str | None = None,
@@ -661,7 +685,8 @@ class RemnawaveApiClient(BaseHttpClient):
         is_hidden: bool | None = None,
         override_sni_from_address: bool | None = None,
         keep_sni_blank: bool | None = None,
-        allow_insecure: bool | None = None,
+        pinned_peer_cert_sha256: str | None = None,
+        verify_peer_cert_by_name: bool | None = None,
         vless_route_id: int | None = None,
         shuffle_host: bool | None = None,
         mihomo_x25519: bool | None = None,
@@ -677,8 +702,10 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["address"] = address
         if port is not None:
             payload["port"] = port
-        if tag is not None:
-            payload["tag"] = tag
+        if tags is not None:
+            payload["tags"] = tags
+        if mihomo_ip_version is not None:
+            payload["mihomoIpVersion"] = mihomo_ip_version
         if inbound is not None:
             payload["inbound"] = inbound
         if path is not None:
@@ -709,8 +736,10 @@ class RemnawaveApiClient(BaseHttpClient):
             payload["overrideSniFromAddress"] = override_sni_from_address
         if keep_sni_blank is not None:
             payload["keepSniBlank"] = keep_sni_blank
-        if allow_insecure is not None:
-            payload["allowInsecure"] = allow_insecure
+        if pinned_peer_cert_sha256 is not None:
+            payload["pinnedPeerCertSha256"] = pinned_peer_cert_sha256
+        if verify_peer_cert_by_name is not None:
+            payload["verifyPeerCertByName"] = verify_peer_cert_by_name
         if vless_route_id is not None:
             payload["vlessRouteId"] = vless_route_id
         if shuffle_host is not None:
@@ -1309,16 +1338,12 @@ class RemnawaveApiClient(BaseHttpClient):
         await cache.invalidate(CacheKeys.STATS)
         return result
 
-    async def bulk_set_inbound_hosts(self, uuids: list[str], inbound: dict) -> dict:
-        """Массовая установка inbound для хостов."""
-        result = await self._post("/api/hosts/bulk/set-inbound", json={"uuids": uuids, "inbound": inbound})
+    async def bulk_update_hosts(self, uuids: list[str], **fields) -> dict:
+        """2.8.0: универсальное массовое обновление хостов (заменяет удалённые
+        bulk/set-inbound и bulk/set-port). Применяет переданные поля ко всем uuids."""
+        result = await self._patch("/api/hosts/bulk/update", json={"uuids": uuids, **fields})
         await cache.invalidate(CacheKeys.HOSTS)
-        return result
-
-    async def bulk_set_port_hosts(self, uuids: list[str], port: int) -> dict:
-        """Массовая установка порта для хостов."""
-        result = await self._post("/api/hosts/bulk/set-port", json={"uuids": uuids, "port": port})
-        await cache.invalidate(CacheKeys.HOSTS)
+        await cache.invalidate(CacheKeys.STATS)
         return result
 
     # --- Nodes bulk ---

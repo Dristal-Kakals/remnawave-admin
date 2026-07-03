@@ -512,7 +512,7 @@ async def cb_bulk_nodes_actions(callback: CallbackQuery, admin: BotAdmin) -> Non
         elif action == "restart_all":
             for uuid in uuids:
                 try:
-                    await internal_api_client.restart_node(uuid)
+                    await internal_api_client.restart_node(uuid, force_restart=True)
                     success_count += 1
                 except ApiClientError:
                     error_count += 1

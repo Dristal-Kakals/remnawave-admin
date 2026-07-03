@@ -1,6 +1,6 @@
 {
   "bot": {
-    "welcome": "👋 Добро пожаловать в админ-бот Remnawave. Управляй пользователями, нодами и биллингом из одного места.",
+    "welcome": "👋 Добро пожаловать в админ-бот {brand}. Управляй пользователями, нодами и биллингом из одного места.",
     "help": "ℹ️ Быстрые команды:\n\nОсновное:\n/start — приветствие\n/help — эта справка\n/health — проверка системы\n/stats — сводка\n/bandwidth — трафик\n\nПользователи:\nМеню «Пользователи → Найти пользователя» — поиск по никнейму/email/Telegram ID/описанию\n/user_create <username> <expire_iso> [telegram_id] — создать пользователя\n\nИнфраструктура:\n/nodes — список нод\n/node <uuid> — детали ноды\n/nodes_usage — онлайн-статистика\n/nodes_range <start_iso> <end_iso> — трафик за период\n/hosts — список хостов\n/host <uuid> — детали хоста\n\nДругое:\n/sub <short_uuid> — подписка\n/tokens — API токены\n/templates — шаблоны\n/snippets — сниппеты\n/configs — конфиги\n/billing — биллинг\n/providers — провайдеры",
     "menu": "🤖 Remnawave Admin Bot",
     "menu_stats": "📊 Статистика:\n\n  👥 Пользователей: {users}\n     └─ Онлайн: {online}\n\n  🛰 Нод: {nodes}\n     ├─ Включено: {nodes_enabled}\n     └─ Онлайн: {nodes_online}\n\n  🖥 Хостов: {hosts}\n     └─ Включено: {hosts_enabled}",
@@ -294,10 +294,11 @@
     "prompt_telegram": "✈️ Введи Telegram ID (число) или пропусти.\n\nПример: 123456789",
     "invalid_telegram": "⚠️ Telegram ID должен быть числом (например: 123456789). Введи ещё раз или пропусти.",
     "prompt_squad": "🧩 Выбери сквад или нажми «Пропустить».",
+    "prompt_external_squad": "🌐 Выбери внешний сквад или нажми «Пропустить».",
     "squad_load_failed": "🚫 Список сквадов недоступен. Введи UUID вручную или пропусти.",
     "username_exists": "⚠️ Пользователь с таким username уже существует. Введи другой.",
     "validation_error": "⚠️ Ошибка валидации: {detail}",
-    "create_preview": "👤 <b>Предпросмотр пользователя</b>\n\n📛 <b>Username:</b> {username}\n⏳ <b>Истекает:</b> {expire}\n📊 <b>Трафик:</b> {traffic}\n🔄 <b>Стратегия:</b> {traffic_strategy}\n💻 <b>HWID лимит:</b> {hwid}\n🆔 <b>Telegram ID:</b> {telegramId}\n📧 <b>Email:</b> {email}\n🏷 <b>Тег:</b> {tag}\n🔑 <b>UUID:</b> {uuid}\n✅ <b>Статус:</b> {status}\n📝 <b>Описание:</b> {description}\n🧩 <b>Сквэд:</b> {squad}",
+    "create_preview": "👤 <b>Предпросмотр пользователя</b>\n\n📛 <b>Username:</b> {username}\n⏳ <b>Истекает:</b> {expire}\n📊 <b>Трафик:</b> {traffic}\n🔄 <b>Стратегия:</b> {traffic_strategy}\n💻 <b>HWID лимит:</b> {hwid}\n🆔 <b>Telegram ID:</b> {telegramId}\n📧 <b>Email:</b> {email}\n🏷 <b>Тег:</b> {tag}\n🔑 <b>UUID:</b> {uuid}\n✅ <b>Статус:</b> {status}\n📝 <b>Описание:</b> {description}\n🧩 <b>Сквэд:</b> {squad}\n🌐 <b>Внешний сквад:</b> {external_squad}",
     "create_step": "Шаг {step}/{total}",
     "skip": "⏭ Пропустить",
     "expire_7d": "🕒 +7 дней",
@@ -334,6 +335,7 @@
     "unlimited": "♾ Без ограничений",
     "not_set": "— Не указано",
     "no_squad": "— Не выбран",
+    "no_external_squad": "— Не выбран",
     "profile_title": "Профиль пользователя",
     "subscription_section": "Подписка и даты",
     "usage_create": "📌 Использование: /user_create <username> <expire_iso> [telegram_id]",

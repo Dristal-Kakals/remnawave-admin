@@ -44,13 +44,13 @@ export function HostCompactCard({ host, canEdit, canDelete, onEdit, onEnable, on
     <Card className={cn('group', host.is_disabled && 'opacity-60')}>
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className={cn('p-1.5 rounded-md shrink-0', host.is_disabled ? 'bg-gray-500/10' : 'bg-green-500/10')}>
+          <div className={cn('p-1.5 rounded-md shrink-0', host.is_disabled ? 'bg-gray-500/10' : 'bg-green-500/10')} role="img" title={host.is_disabled ? t('hosts.statusDisabled') : t('hosts.statusActive')} aria-label={host.is_disabled ? t('hosts.statusDisabled') : t('hosts.statusActive')}>
             {host.is_disabled ? <WifiOff className="w-4 h-4 text-dark-200" /> : <Wifi className="w-4 h-4 text-green-400" />}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-medium text-white text-sm truncate">{host.remark || t('hosts.statusNoName')}</span>
-              {host.tag && <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary-500/10 text-primary-300 border border-primary-500/20 shrink-0">{host.tag}</span>}
+              {host.tags && host.tags.length > 0 && <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary-500/10 text-primary-300 border border-primary-500/20 shrink-0">{host.tags.join(', ')}</span>}
               {host.is_hidden && <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-yellow-500/10 text-yellow-400 shrink-0">{t('hosts.statusHidden')}</Badge>}
             </div>
             <div className="text-[11px] text-dark-300 font-mono truncate">{host.address}:{host.port}</div>
@@ -58,7 +58,7 @@ export function HostCompactCard({ host, canEdit, canDelete, onEdit, onEnable, on
           {(scopeEdit || scopeDelete) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-6 w-6 text-dark-300 hover:text-white shrink-0">
+                <Button size="icon" variant="ghost" aria-label={t('common.openMenu')} className="h-6 w-6 text-dark-300 hover:text-white shrink-0">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

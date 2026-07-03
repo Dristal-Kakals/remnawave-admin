@@ -49,23 +49,19 @@ def _host_inbounds_keyboard(inbounds: list[dict]) -> InlineKeyboardMarkup:
 
 
 async def _fetch_hosts_text(admin: BotAdmin | None = None) -> str:
-    """Получает текст со списком хостов (из БД, fallback на API)."""
+    """Получает текст со списком хостов (API для realtime, БД как fallback)."""
     try:
         hosts = []
-        
-        # Сначала пробуем получить из БД
-        if db_service.is_connected:
-            try:
-                hosts = await db_service.get_all_hosts()
-                logger.debug("Fetched %d hosts from database", len(hosts))
-            except Exception as e:
-                logger.warning("DB fetch failed, fallback to API: %s", e)
-                hosts = []
-        
-        # Fallback на API если БД пуста или недоступна
-        if not hosts:
+
+        # Пробуем получить из API (realtime данные)
+        try:
             data = await internal_api_client.get_hosts()
             hosts = data.get("response", [])
+        except ApiClientError:
+            # Fallback на БД, если API недоступен
+            if db_service.is_connected:
+                hosts = await db_service.get_all_hosts()
+                logger.warning("API unavailable, using database for hosts")
         
         if not hosts:
             return _("host.list_empty")
@@ -86,7 +82,7 @@ async def _fetch_hosts_text(admin: BotAdmin | None = None) -> str:
                 statusEmoji=status_emoji,
                 remark=remark,
                 address=address,
-                tag=host.get("tag", "—"),
+                tag=", ".join(host.get("tags") or []) or host.get("tag") or "—",
             )
             lines.append(line)
         if len(sorted_hosts) > 10:
@@ -202,7 +198,7 @@ async def _fetch_hosts_with_keyboard(user_id: int | None = None, page: int = 0, 
                 status_emoji = "🟡" if status == "DISABLED" else "🟢"
                 address = f"{host.get('address', 'n/a')}:{host.get('port', '—')}"
                 remark = host.get("remark", "n/a")
-                tag = host.get("tag", "—")
+                tag = ", ".join(host.get("tags") or []) or host.get("tag") or "—"
 
                 line = _("host.list_item").format(
                     statusEmoji=status_emoji,
@@ -368,6 +364,11 @@ async def _handle_host_create_input(message: Message, ctx: dict) -> None:
 
 async def _apply_host_update(target: Message | CallbackQuery, host_uuid: str, payload: dict, back_to: str, admin: BotAdmin | None = None) -> None:
     """Применяет обновление хоста."""
+    # 2.8.0: единичный `tag` заменён массивом `tags[]`. Конвертируем здесь, чтобы
+    # любой путь редактирования слал корректный формат (Remnawave 2.8.0 удалил tag).
+    if "tag" in payload:
+        tag_val = payload.pop("tag")
+        payload["tags"] = [tag_val] if tag_val else None
     try:
         await internal_api_client.update_host(host_uuid, **payload)
         host = await internal_api_client.get_host(host_uuid)
@@ -496,7 +497,7 @@ async def cb_hosts_select_inbound(callback: CallbackQuery, admin: BotAdmin) -> N
             port=data["port"],
             config_profile_uuid=data["config_profile_uuid"],
             config_profile_inbound_uuid=data["config_profile_inbound_uuid"],
-            tag=data.get("tag"),
+            tags=[data["tag"]] if data.get("tag") else None,
         )
         PENDING_INPUT.pop(user_id, None)
         hosts_text = await _fetch_hosts_text()

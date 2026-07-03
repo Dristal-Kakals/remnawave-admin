@@ -82,7 +82,7 @@ _ROUTE_DEFS: list[dict[str, Any]] = [
     dict(name="delete_node", method="DELETE", path="/nodes/{node_uuid}"),
     dict(name="enable_node", method="POST", path="/nodes/{node_uuid}/actions/enable"),
     dict(name="disable_node", method="POST", path="/nodes/{node_uuid}/actions/disable"),
-    dict(name="restart_node", method="POST", path="/nodes/{node_uuid}/actions/restart"),
+    dict(name="restart_node", method="POST", path="/nodes/{node_uuid}/actions/restart", body="kwargs"),
     dict(name="reset_node_traffic", method="POST", path="/nodes/{node_uuid}/actions/reset-traffic"),
     dict(name="get_all_node_tags", method="GET", path="/nodes/tags"),
     # ── Hosts ──
@@ -185,8 +185,7 @@ _ROUTE_DEFS: list[dict[str, Any]] = [
     dict(name="bulk_update_users_squads", method="POST", path="/users/bulk/update-squads", body="kwargs"),
     # ── Bulk Hosts ──
     dict(name="bulk_delete_hosts", method="POST", path="/hosts/bulk/delete", body="kwargs"),
-    dict(name="bulk_set_inbound_hosts", method="POST", path="/hosts/bulk/set-inbound", body="kwargs"),
-    dict(name="bulk_set_port_hosts", method="POST", path="/hosts/bulk/set-port", body="kwargs"),
+    dict(name="bulk_update_hosts", method="PATCH", path="/hosts/bulk/update", body="kwargs"),
 ]
 
 
@@ -269,8 +268,8 @@ class BaseInternalApiClient(BaseHttpClient):
         return await self._get(f"/bandwidth-stats/nodes/{node_uuid}/users", params={"start": start, "end": end, "topUsersLimit": top_users_limit})
 
     async def restart_all_nodes(self, force_restart: bool = False) -> dict:
-        payload = {"forceRestart": True} if force_restart else {}
-        return await self._post("/nodes/actions/restart-all", json=payload)
+        # 2.8.0: restart-all требует body с обязательным forceRestart.
+        return await self._post("/nodes/actions/restart-all", json={"forceRestart": force_restart})
 
     async def reorder_nodes(self, items: list[dict]) -> dict:
         return await self._post("/nodes/actions/reorder", json={"nodes": items})

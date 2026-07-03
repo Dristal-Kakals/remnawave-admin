@@ -35,6 +35,10 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "remove": "Remove",
+    "show": "Show",
+    "hide": "Hide",
+    "min": "Min",
+    "max": "Max",
     "toggleSort": "Toggle sort order",
     "dragToReorder": "Drag to reorder",
     "loading": "Loading...",
@@ -950,7 +954,11 @@
       "address": "Address",
       "addressPlaceholder": "IP or domain",
       "port": "Port",
-      "portPlaceholder": "Port"
+      "portPlaceholder": "Port",
+      "note": "Note",
+      "notePlaceholder": "Internal note (up to 255 chars)",
+      "proxyUrl": "SOCKS5 proxy",
+      "nodeConsumptionMultiplier": "Node consumption multiplier"
     },
     "createNode": {
       "title": "Add node",
@@ -1403,7 +1411,29 @@
       "hostPlaceholder": "Host header",
       "pathPlaceholder": "/path",
       "alpnPlaceholder": "h2,http/1.1",
-      "fingerprintPlaceholder": "chrome, firefox, safari..."
+      "fingerprintPlaceholder": "chrome, firefox, safari...",
+      "mihomoIpVersion": "IP version (Mihomo)",
+      "mihomoIpVersionDefault": "Default",
+      "pinnedPeerCert": "Certificate pinning (SHA-256)",
+      "pinnedPeerCertPlaceholder": "SHA-256 certificate fingerprint",
+      "verifyPeerCert": "Verify certificate by name"
+    },
+    "bulk": {
+      "selectAll": "Select all",
+      "selectOne": "Select {{name}}",
+      "selected": "Selected: {{count}}",
+      "enable": "Enable",
+      "disable": "Disable",
+      "edit": "Edit",
+      "delete": "Delete",
+      "clear": "Clear",
+      "confirmDelete": "Delete selected hosts ({{count}})?",
+      "done": "Done",
+      "editTitle": "Bulk edit ({{count}})",
+      "editHint": "Check the fields to apply to all selected hosts.",
+      "tags": "Tags",
+      "cancel": "Cancel",
+      "apply": "Apply"
     },
     "detail": {
       "nodes": "Nodes"

@@ -142,6 +142,12 @@ def user_create_squad_keyboard(squads: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def user_create_external_squad_keyboard(squads: list[dict]) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text=s.get("name", "n/a"), callback_data=f"user_create:external_squad:{s.get('uuid')}")] for s in squads]
+    rows.append([InlineKeyboardButton(text=_("user.skip"), callback_data="user_create:skip:external_squad")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def user_create_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

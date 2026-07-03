@@ -51,6 +51,8 @@ def _ensure_node_snake_case(node: dict) -> dict:
         'uptimeSeconds': 'uptime_seconds',
         'downloadSpeedBps': 'download_speed_bps',
         'uploadSpeedBps': 'upload_speed_bps',
+        'proxyUrl': 'proxy_url',
+        'nodeConsumptionMultiplier': 'node_consumption_multiplier',
     }
     # Panel 2.7+: extract versions.xray/node into flat fields
     versions = result.get("versions")

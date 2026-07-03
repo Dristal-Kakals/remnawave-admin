@@ -43,6 +43,7 @@ from src.handlers.resources import _fetch_configs_text, _fetch_snippets_text, _s
 from src.handlers.users import _format_user_choice, _send_user_summary, _show_user_search_results, _start_user_search_flow
 from src.keyboards.subscription_actions import subscription_keyboard
 from src.utils.auth import BotAdmin
+from src.utils.branding import bot_menu_title
 from src.utils.formatters import build_quota_text, build_subscription_summary
 
 async def _fetch_main_menu_text(force_refresh: bool = False) -> str:
@@ -89,47 +90,47 @@ async def _fetch_main_menu_text(force_refresh: bool = False) -> str:
         total_users = users.get("totalUsers", 0)
         online_now = online.get("onlineNow", 0)
 
-        # Получаем количество хостов (из БД, fallback на API)
+        # Количество хостов: единый источник — живой API панели.
+        # Раньше счётчик брался из снимка БД и "застывал", если фоновая
+        # синхронизация (sync_hosts) отставала. БД — только fallback при сбое API.
         try:
+            hosts_data = await internal_api_client.get_hosts()
+            hosts = hosts_data.get("response", [])
+            total_hosts = len(hosts)
+            enabled_hosts = sum(1 for h in hosts if not h.get("isDisabled"))
+        except Exception:
             if db_service.is_connected:
                 hosts_stats = await db_service.get_hosts_stats()
                 total_hosts = hosts_stats.get("total", 0)
                 enabled_hosts = hosts_stats.get("enabled", 0)
             else:
-                hosts_data = await internal_api_client.get_hosts()
-                hosts = hosts_data.get("response", [])
-                total_hosts = len(hosts)
-                enabled_hosts = sum(1 for h in hosts if not h.get("isDisabled"))
-        except Exception:
-            total_hosts = "—"
-            enabled_hosts = "—"
+                total_hosts = "—"
+                enabled_hosts = "—"
 
-        # Получаем количество нод (счётчики из БД, online из API)
+        # Количество нод: единый источник — живой API панели, чтобы все три
+        # счётчика (всего/включено/онлайн) были согласованы. Раньше всего/включено
+        # брались из снимка БД, а онлайн — из live API, из-за чего при отставании
+        # синхронизации возникала "чушь" вида «онлайн 6 > всего 5».
+        # БД — только fallback при сбое API (там все счётчики из одного снимка).
         try:
+            nodes_data = await internal_api_client.get_nodes()
+            nodes_list = nodes_data.get("response", [])
+            total_nodes = len(nodes_list)
+            enabled_nodes = sum(1 for n in nodes_list if not n.get("isDisabled"))
+            nodes_online = sum(1 for n in nodes_list if n.get("isConnected"))
+        except Exception:
             if db_service.is_connected:
                 nodes_stats = await db_service.get_nodes_stats()
                 total_nodes = nodes_stats.get("total", 0)
                 enabled_nodes = nodes_stats.get("enabled", 0)
-                # Для online нужен API
-                try:
-                    nodes_data = await internal_api_client.get_nodes()
-                    nodes_list = nodes_data.get("response", [])
-                    nodes_online = sum(1 for n in nodes_list if n.get("isConnected"))
-                except Exception:
-                    nodes_online = nodes_stats.get("connected", 0)
+                nodes_online = nodes_stats.get("connected", 0)
             else:
-                nodes_data = await internal_api_client.get_nodes()
-                nodes_list = nodes_data.get("response", [])
-                total_nodes = len(nodes_list)
-                enabled_nodes = sum(1 for n in nodes_list if not n.get("isDisabled"))
-                nodes_online = sum(1 for n in nodes_list if n.get("isConnected"))
-        except Exception:
-            total_nodes = "—"
-            enabled_nodes = "—"
-            nodes_online = "—"
+                total_nodes = "—"
+                enabled_nodes = "—"
+                nodes_online = "—"
 
         lines = [
-            _("bot.menu"),
+            bot_menu_title(),
             "",
             f"{panel_status} {_('panel.status')}{panel_status_text}",
             "",
@@ -156,7 +157,7 @@ async def _fetch_main_menu_text(force_refresh: bool = False) -> str:
     except Exception:
         # Если не удалось получить статистику, возвращаем простое меню
         logger.exception("Failed to fetch main menu stats")
-        return _("bot.menu")
+        return bot_menu_title()
 
 router = Router(name="navigation")
 
@@ -386,7 +387,7 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
         await _send_clean_message(target, menu_text, reply_markup=main_menu_keyboard(admin=admin), parse_mode="HTML")
         return
     if destination == NavTarget.USERS_MENU:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=users_menu_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=users_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.USER_SEARCH_PROMPT:
         await _start_user_search_flow(target)
@@ -401,7 +402,7 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
             await _start_user_search_flow(target)
         return
     if destination == NavTarget.NODES_MENU:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=nodes_menu_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=nodes_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.NODES_LIST:
         from src.handlers.nodes import _fetch_nodes_with_keyboard, _get_nodes_page
@@ -422,7 +423,7 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
         await _send_clean_message(target, text, reply_markup=nodes_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.RESOURCES_MENU:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=resources_menu_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=resources_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.TOKENS_MENU:
         await _show_tokens(target, reply_markup=resources_menu_keyboard(admin=admin))
@@ -435,7 +436,7 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
         await _send_clean_message(target, text, reply_markup=resources_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.BILLING_OVERVIEW:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=billing_overview_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=billing_overview_keyboard(admin=admin))
         return
     if destination == NavTarget.BILLING_MENU:
         text = await _fetch_billing_text()
@@ -450,10 +451,10 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
         await _send_clean_message(target, text, reply_markup=providers_menu_keyboard())
         return
     if destination == NavTarget.BULK_MENU:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=bulk_menu_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=bulk_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.SYSTEM_MENU:
-        await _send_clean_message(target, _("bot.menu"), reply_markup=system_menu_keyboard(admin=admin))
+        await _send_clean_message(target, bot_menu_title(), reply_markup=system_menu_keyboard(admin=admin))
         return
     if destination == NavTarget.STATS_MENU:
         from src.keyboards.stats_menu import stats_menu_keyboard
@@ -480,7 +481,7 @@ async def _navigate(target: Message | CallbackQuery, destination: str, is_back: 
             await _send_clean_message(target, _("errors.generic"), reply_markup=main_menu_keyboard(admin=admin))
         return
 
-    await _send_clean_message(target, _("bot.menu"), reply_markup=main_menu_keyboard(admin=admin))
+    await _send_clean_message(target, bot_menu_title(), reply_markup=main_menu_keyboard(admin=admin))
     
     # После успешной навигации добавляем пункт назначения в историю (если не назад)
     if not is_back:

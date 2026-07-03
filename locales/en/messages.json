@@ -1,6 +1,6 @@
 {
   "bot": {
-    "welcome": "👋 Welcome to the Remnawave admin bot. Control users, nodes, and billing from one place.",
+    "welcome": "👋 Welcome to the {brand} admin bot. Control users, nodes, and billing from one place.",
     "help": "ℹ️ Quick commands:\n\nCore:\n/start — welcome\n/help — this help\n/health — system check\n/stats — summary\n/bandwidth — traffic\n\nUsers:\nUsers → Find user (menu) — search by username/email/Telegram ID/description\n/user_create <username> <expire_iso> [telegram_id] — create user\n\nInfra:\n/nodes — list nodes\n/node <uuid> — node details\n/nodes_usage — realtime usage\n/nodes_range <start_iso> <end_iso> — traffic by range\n/hosts — list hosts\n/host <uuid> — host details\n\nOther:\n/sub <short_uuid> — subscription\n/tokens — API tokens\n/templates — templates\n/snippets — snippets\n/configs — configs\n/billing — billing\n/providers — providers",
     "menu": "🤖 Remnawave Admin Bot",
     "menu_stats": "📊 Statistics:\n\n  👥 Users: {users}\n     └─ Online: {online}\n\n  🛰 Nodes: {nodes}\n     ├─ Enabled: {nodes_enabled}\n     └─ Online: {nodes_online}\n\n  🖥 Hosts: {hosts}\n     └─ Enabled: {hosts_enabled}",
@@ -294,10 +294,11 @@
     "prompt_telegram": "✈️ Enter Telegram ID (number) or skip.\n\nExample: 123456789",
     "invalid_telegram": "⚠️ Telegram ID must be a number (e.g.: 123456789). Send again or skip.",
     "prompt_squad": "🧩 Choose a squad or tap “Skip”.",
+    "prompt_external_squad": "🌐 Choose an external squad or tap “Skip”.",
     "squad_load_failed": "🚫 Squads unavailable. Enter UUID manually or skip.",
     "username_exists": "⚠️ User with this username already exists. Enter another.",
     "validation_error": "⚠️ Validation error: {detail}",
-    "create_preview": "👤 <b>User preview</b>\n\n📛 <b>Username:</b> {username}\n⏳ <b>Expires:</b> {expire}\n📊 <b>Traffic:</b> {traffic}\n🔄 <b>Strategy:</b> {traffic_strategy}\n💻 <b>HWID limit:</b> {hwid}\n🆔 <b>Telegram ID:</b> {telegramId}\n📧 <b>Email:</b> {email}\n🏷 <b>Tag:</b> {tag}\n🔑 <b>UUID:</b> {uuid}\n✅ <b>Status:</b> {status}\n📝 <b>Description:</b> {description}\n🧩 <b>Squad:</b> {squad}",
+    "create_preview": "👤 <b>User preview</b>\n\n📛 <b>Username:</b> {username}\n⏳ <b>Expires:</b> {expire}\n📊 <b>Traffic:</b> {traffic}\n🔄 <b>Strategy:</b> {traffic_strategy}\n💻 <b>HWID limit:</b> {hwid}\n🆔 <b>Telegram ID:</b> {telegramId}\n📧 <b>Email:</b> {email}\n🏷 <b>Tag:</b> {tag}\n🔑 <b>UUID:</b> {uuid}\n✅ <b>Status:</b> {status}\n📝 <b>Description:</b> {description}\n🧩 <b>Squad:</b> {squad}\n🌐 <b>External squad:</b> {external_squad}",
     "create_step": "Step {step}/{total}",
     "skip": "⏭ Skip",
     "expire_7d": "🕒 +7 days",
@@ -334,6 +335,7 @@
     "unlimited": "♾ Unlimited",
     "not_set": "— Not set",
     "no_squad": "— Not selected",
+    "no_external_squad": "— Not selected",
     "profile_title": "User Profile",
     "subscription_section": "Subscription and Dates",
     "usage_create": "📌 Usage: /user_create <username> <expire_iso> [telegram_id]",

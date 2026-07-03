@@ -36,6 +36,7 @@ from src.keyboards.user_create import (
     user_create_description_keyboard,
     user_create_email_keyboard,
     user_create_expire_keyboard,
+    user_create_external_squad_keyboard,
     user_create_hwid_keyboard,
     user_create_squad_keyboard,
     user_create_tag_keyboard,
@@ -378,8 +379,8 @@ async def _delete_ctx_message(ctx: dict, bot) -> None:
 
 
 _CREATE_STAGES = [
-    "username", "description", "expire", "traffic", "traffic_strategy", "hwid", 
-    "telegram", "email", "tag", "squad", "confirm"
+    "username", "description", "expire", "traffic", "traffic_strategy", "hwid",
+    "telegram", "email", "tag", "squad", "external_squad", "confirm"
 ]
 
 async def _send_user_create_prompt(
@@ -435,7 +436,8 @@ def _build_user_create_preview(data: dict) -> str:
     hwid_display = _("user.unlimited") if not hwid_limit else str(hwid_limit)
     telegram_id = data.get("telegram_id") or _("user.not_set")
     description = data.get("description") or _("user.not_set")
-    squad = data.get("squad_uuid") or _("user.no_squad")
+    squad = data.get("internal_squad_uuid") or _("user.no_squad")
+    external_squad = data.get("external_squad_uuid") or _("user.no_external_squad")
     email = data.get("email") or _("user.not_set")
     tag = data.get("tag") or _("user.not_set")
     uuid_val = data.get("uuid") or _("user.auto")
@@ -451,6 +453,7 @@ def _build_user_create_preview(data: dict) -> str:
         telegramId=telegram_id,
         description=_esc(description),
         squad=_esc(squad),
+        external_squad=_esc(external_squad),
         email=_esc(email),
         tag=_esc(tag),
         uuid=_esc(uuid_val),
@@ -522,10 +525,9 @@ async def _create_user(target: Message | CallbackQuery, data: dict, admin: BotAd
                         )
                         return
 
-        squad_uuid = data.get("squad_uuid")
-        squad_source = data.get("squad_source") or "internal"
-        internal_squads = [squad_uuid] if squad_uuid and squad_source != "external" else None
-        external_squad_uuid = squad_uuid if squad_uuid and squad_source == "external" else None
+        internal_squad_uuid = data.get("internal_squad_uuid")
+        external_squad_uuid = data.get("external_squad_uuid")
+        internal_squads = [internal_squad_uuid] if internal_squad_uuid else None
         
         status = data.get("status", "ACTIVE")
         if isinstance(status, str):
@@ -536,14 +538,13 @@ async def _create_user(target: Message | CallbackQuery, data: dict, admin: BotAd
 
         logger.info(
             "👤 Creating user username=%s expire_at=%s traffic_bytes=%s hwid=%s telegram_id=%s "
-            "squad_source=%s internal_squads=%s external_squad_uuid=%s actor_id=%s status=%s "
+            "internal_squads=%s external_squad_uuid=%s actor_id=%s status=%s "
             "email=%s tag=%s uuid=%s traffic_strategy=%s",
             username,
             expire_at,
             traffic_limit_bytes,
             data.get("hwid_limit"),
             telegram_id,
-            squad_source,
             internal_squads,
             external_squad_uuid,
             target.from_user.id if hasattr(target, "from_user") else "n/a",
@@ -1251,7 +1252,13 @@ async def _handle_user_create_input(message: Message, ctx: dict) -> None:
         return
 
     if stage == "squad":
-        data["squad_uuid"] = text or None
+        data["internal_squad_uuid"] = text or None
+        await _send_external_squad_prompt(message, ctx, admin=admin)
+        asyncio.create_task(_cleanup_message(message, delay=0.5))
+        return
+
+    if stage == "external_squad":
+        data["external_squad_uuid"] = text or None
         ctx["stage"] = "confirm"
         PENDING_INPUT[user_id] = ctx
         await _send_user_create_prompt(
@@ -1317,7 +1324,11 @@ async def _handle_user_create_callback(callback: CallbackQuery, admin: BotAdmin 
                 )
             return
         if field == "squad":
-            data["squad_uuid"] = None
+            data["internal_squad_uuid"] = None
+            await _send_external_squad_prompt(callback, ctx, admin=admin)
+            return
+        if field == "external_squad":
+            data["external_squad_uuid"] = None
             ctx["stage"] = "confirm"
             PENDING_INPUT[user_id] = ctx
             await _send_user_create_prompt(
@@ -1458,33 +1469,37 @@ async def _handle_user_create_callback(callback: CallbackQuery, admin: BotAdmin 
         await _send_user_create_prompt(callback, _("user.cancelled"), users_menu_keyboard(), ctx=ctx)
 
     if action == "squad" and len(parts) >= 3:
-        data["squad_uuid"] = parts[2]
+        data["internal_squad_uuid"] = parts[2]
+        await _send_external_squad_prompt(callback, ctx, admin=admin)
+        return
+
+    if action == "external_squad" and len(parts) >= 3:
+        data["external_squad_uuid"] = parts[2]
         ctx["stage"] = "confirm"
         PENDING_INPUT[user_id] = ctx
         await _send_user_create_prompt(
             callback, _build_user_create_preview(data), user_create_confirm_keyboard(), ctx=ctx
         )
+        return
 
 
 async def _send_squad_prompt(target: Message | CallbackQuery, ctx: dict, admin: BotAdmin | None = None) -> None:
-    """Отправляет промпт для выбора сквада."""
-    data = ctx.setdefault("data", {})
-    # Получаем squads с учетом scope админа
+    """Отправляет промпт для выбора ВНУТРЕННЕГО сквада."""
+    # Получаем внутренние сквады с учётом scope админа
     try:
         if admin and admin.account_id:
-            squads, squad_source = await data_access.get_squads_for_admin(
+            squads = await data_access.get_internal_squads_for_admin(
                 admin.account_id, admin.role_id, admin.role_name
             )
         else:
-            squads, squad_source = await data_access.get_all_squads()
-        logger.info("📥 Loaded %s %s squads for user_id=%s", len(squads), squad_source, target.from_user.id)
+            squads = await data_access.get_all_internal_squads()
+        logger.info("📥 Loaded %s internal squads for user_id=%s", len(squads), target.from_user.id)
     except UnauthorizedError:
         await _send_user_create_prompt(target, _("errors.unauthorized"), users_menu_keyboard(), ctx=ctx)
         return
     except Exception as exc:
-        logger.warning("⚠️ Failed to load squads: %s", exc)
+        logger.warning("⚠️ Failed to load internal squads: %s", exc)
         squads = []
-        squad_source = "internal"
 
     if not squads:
         await _send_user_create_prompt(
@@ -1494,16 +1509,45 @@ async def _send_squad_prompt(target: Message | CallbackQuery, ctx: dict, admin: 
 
     squads_sorted = sorted(squads, key=lambda s: s.get("viewPosition", 0))
     markup = user_create_squad_keyboard(squads_sorted)
-    text = _("user.prompt_squad") if squads_sorted else _("user.squad_load_failed")
-    data["squad_source"] = squad_source
-    logger.info(
-        "🧩 Squad prompt using source=%s squads_count=%s user_id=%s",
-        squad_source,
-        len(squads_sorted),
-        target.from_user.id,
-    )
     PENDING_INPUT[target.from_user.id] = ctx
-    await _send_user_create_prompt(target, text, markup, ctx=ctx)
+    await _send_user_create_prompt(target, _("user.prompt_squad"), markup, ctx=ctx)
+
+
+async def _send_external_squad_prompt(target: Message | CallbackQuery, ctx: dict, admin: BotAdmin | None = None) -> None:
+    """Отправляет промпт для выбора ВНЕШНЕГО сквада. Если внешних сквадов нет —
+    шаг пропускается и сразу показывается подтверждение."""
+    data = ctx.setdefault("data", {})
+    # Получаем внешние сквады с учётом scope админа
+    try:
+        if admin and admin.account_id:
+            squads = await data_access.get_external_squads_for_admin(
+                admin.account_id, admin.role_id, admin.role_name
+            )
+        else:
+            squads = await data_access.get_all_external_squads()
+    except UnauthorizedError:
+        await _send_user_create_prompt(target, _("errors.unauthorized"), users_menu_keyboard(), ctx=ctx)
+        return
+    except Exception as exc:
+        logger.warning("⚠️ Failed to load external squads: %s", exc)
+        squads = []
+
+    # Внешних сквадов нет — пропускаем шаг и сразу переходим к подтверждению
+    if not squads:
+        data["external_squad_uuid"] = None
+        ctx["stage"] = "confirm"
+        PENDING_INPUT[target.from_user.id] = ctx
+        await _send_user_create_prompt(
+            target, _build_user_create_preview(data), user_create_confirm_keyboard(), ctx=ctx
+        )
+        return
+
+    squads_sorted = sorted(squads, key=lambda s: s.get("viewPosition", 0))
+    markup = user_create_external_squad_keyboard(squads_sorted)
+    ctx["stage"] = "external_squad"
+    PENDING_INPUT[target.from_user.id] = ctx
+    logger.info("🌐 External squad prompt squads_count=%s user_id=%s", len(squads_sorted), target.from_user.id)
+    await _send_user_create_prompt(target, _("user.prompt_external_squad"), markup, ctx=ctx)
 
 
 async def _show_squad_selection_for_edit(callback: CallbackQuery, user_uuid: str, back_to: str, admin: BotAdmin | None = None) -> None:

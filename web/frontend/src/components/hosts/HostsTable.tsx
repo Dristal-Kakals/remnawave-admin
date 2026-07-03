@@ -22,7 +22,8 @@ export interface HostRow {
   port: number
   is_disabled: boolean
   is_hidden: boolean
-  tag: string | null
+  tag?: string | null
+  tags: string[] | null
   inbound: { uuid: string; tag: string; type: string } | null
   security_layer: string | null
   security: string | null
@@ -55,13 +56,15 @@ export interface HostsTableProps {
   hosts: HostRow[]
   canEdit: boolean
   canDelete: boolean
+  selected?: Set<string>
+  onToggleSelect?: (uuid: string) => void
   onEdit: (h: HostRow) => void
   onEnable: (h: HostRow) => void
   onDisable: (h: HostRow) => void
   onDelete: (h: HostRow) => void
 }
 
-export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisable, onDelete }: HostsTableProps) {
+export function HostsTable({ hosts, canEdit, canDelete, selected, onToggleSelect, onEdit, onEnable, onDisable, onDelete }: HostsTableProps) {
   const { t } = useTranslation()
 
   const secLabel = (s: string): string =>
@@ -73,7 +76,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
       { key: 'address', sortAccessor: (h) => h.address },
       { key: 'security', sortAccessor: (h) => sec(h), filterAccessor: (h) => sec(h), filterType: 'select' },
       { key: 'inbound', filterAccessor: (h) => h.inbound?.tag ?? '', filterType: 'select' },
-      { key: 'tag', sortAccessor: (h) => h.tag ?? '', filterAccessor: (h) => h.tag ?? '', filterType: 'select' },
+      { key: 'tag', sortAccessor: (h) => (h.tags || []).join(', ') || h.tag || '', filterAccessor: (h) => (h.tags || []).join(', ') || h.tag || '', filterType: 'select' },
       { key: 'status', sortAccessor: (h) => ({ active: 0, hidden: 1, disabled: 2 })[hostStatus(h)], filterAccessor: (h) => hostStatus(h), filterType: 'select' },
     ],
     [],
@@ -86,7 +89,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
   const uniq = (vals: (string | null | undefined)[]) => Array.from(new Set(vals.filter((v): v is string => !!v)))
   const securityOptions = useMemo(() => uniq(hosts.map((h) => sec(h))).map((s) => ({ value: s, label: secLabel(s) })), [hosts])
   const inboundOptions = useMemo(() => uniq(hosts.map((h) => h.inbound?.tag)).map((v) => ({ value: v, label: v })), [hosts])
-  const tagOptions = useMemo(() => uniq(hosts.map((h) => h.tag)).map((v) => ({ value: v, label: v })), [hosts])
+  const tagOptions = useMemo(() => uniq(hosts.flatMap((h) => h.tags || (h.tag ? [h.tag] : []))).map((v) => ({ value: v, label: v })), [hosts])
   const statusOptions = [
     { value: 'active', label: t('hosts.statusActive') },
     { value: 'disabled', label: t('hosts.statusDisabled') },
@@ -97,6 +100,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
     <Table>
       <TableHeader>
         <TableRow>
+          {onToggleSelect && <SortableTh label="" className="w-px" />}
           <SortableTh label={t('hosts.table.remark', { defaultValue: 'Хост' })} sortKey="remark" currentSort={sort} onSort={toggleSort} />
           <SortableTh label={t('hosts.table.address', { defaultValue: 'Адрес' })} sortKey="address" currentSort={sort} onSort={toggleSort} className="hidden md:table-cell" />
           <SortableTh label={t('hosts.table.security', { defaultValue: 'Security' })} sortKey="security" currentSort={sort} onSort={toggleSort}
@@ -119,6 +123,17 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
           const scopeDelete = canDelete && (host.allowed_actions == null || host.allowed_actions.includes('delete'))
           return (
             <TableRow key={host.uuid}>
+              {onToggleSelect && (
+                <TableCell className="w-px">
+                  <input
+                    type="checkbox"
+                    className="accent-primary-500 w-4 h-4 cursor-pointer"
+                    checked={selected?.has(host.uuid) || false}
+                    onChange={() => onToggleSelect(host.uuid)}
+                    aria-label={t('hosts.bulk.selectOne', { name: host.remark || host.address })}
+                  />
+                </TableCell>
+              )}
               <TableCell>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="font-medium text-white truncate max-w-[180px]">{host.remark || '—'}</span>
@@ -139,7 +154,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
                 ) : <span className="text-dark-400">—</span>}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                {host.tag ? <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-primary-500/10 text-primary-300 border border-primary-500/20">{host.tag}</span> : <span className="text-dark-400">—</span>}
+                {host.tags && host.tags.length > 0 ? <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-primary-500/10 text-primary-300 border border-primary-500/20">{host.tags.join(', ')}</span> : <span className="text-dark-400">—</span>}
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-1.5 text-xs text-dark-100">
@@ -151,7 +166,7 @@ export function HostsTable({ hosts, canEdit, canDelete, onEdit, onEnable, onDisa
                 {(scopeEdit || scopeDelete) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-dark-200 hover:text-white">
+                      <Button size="icon" variant="ghost" aria-label={t('common.openMenu')} className="h-7 w-7 text-dark-200 hover:text-white">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
